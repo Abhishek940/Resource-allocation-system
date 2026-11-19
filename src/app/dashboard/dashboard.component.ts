@@ -803,7 +803,4 @@ getUpskillingCandidates(): void {
 }
 
 
-
-
-
 }
