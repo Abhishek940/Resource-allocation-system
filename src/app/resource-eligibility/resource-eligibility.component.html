@@ -1,0 +1,285 @@
+<div class="container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h2>Resource Eligibility & Availability</h2>
+      <p>Review employee availability before suitability ranking.</p>
+    </div>
+
+   
+  </div>
+
+  <!-- Project Selection -->
+  <div class="project-selector">
+  <div class="project-select-group">
+    <label for="projectId">Select Project</label>
+
+    <select id="projectId" [(ngModel)]="projectId" (ngModelChange)="onProjectChange($event)" [disabled]="loading"  >
+      <option [ngValue]="null">-- Select Project --</option>
+
+      <option *ngFor="let item of projects" [ngValue]="item.id">
+        {{ item.projectName }} ({{ item.projectCode }})
+      </option>
+    </select>
+  </div>
+
+  <button type="button" class="refresh-btn" (click)="refreshEligibility()" [disabled]="loading || !projectId" >
+    <i class="bi bi-arrow-clockwise"></i>
+    Refresh
+  </button>
+</div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="message">
+    Checking resource eligibility...
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="errorMessage" class="error">
+    {{ errorMessage }}
+  </div>
+
+  <!-- Project Details -->
+  <div *ngIf="project && !loading" class="project-card">
+  <h3>Project Details</h3>
+
+  <p><strong>Project:</strong> {{ project.projectName }}</p>
+  <p><strong>Project Code:</strong> {{ project.projectCode }}</p>
+  <p><strong>Location:</strong> {{ project.location || 'Not specified' }}</p>
+
+  <p>
+    <strong>Mandatory Skills:</strong>
+    {{ project.mandatorySkills || 'Not specified' }}
+  </p>
+
+  <p>
+    <strong>Start Date:</strong>
+    {{ project.startfrom | date:'dd-MMM-yyyy' : 'Not Specified' }}
+  </p>
+
+  <p>
+    <strong>Project Duration:</strong>
+    {{ project.projectDuration || 'Not specified' }}
+  </p>
+
+  <p>
+    <strong>Required Resources:</strong>
+    {{ project.numberOfResources ?? 'Not specified' }}
+  </p>
+</div>
+
+  <!-- Eligibility Results -->
+  <ng-container *ngIf="eligibility && !loading">
+
+    <!-- Eligible Resources -->
+    <section class="result-section">
+      <h3>Eligible Resources</h3>
+      <p>Employees who meet the mandatory eligibility constraints.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee Code</th>
+              <th>Name</th>
+              <th>Location</th>
+              <th>Available From</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let employee of getList('eligible')">
+              <td>{{ employee.employeeCode || employee.employee_code || '-' }}</td>
+              <td>{{ employee.employeeName || employee.employee_name || '-' }}</td>
+              <td>{{ employee.location || '-' }}</td>
+              <td>{{ employee.availableFrom | date:'dd-MMM-yyyy'  }}</td>
+              <td><span class="status eligible">Eligible</span></td>
+            </tr>
+
+            <tr *ngIf="getList('eligible').length === 0">
+              <td colspan="5" style="text-align: center;">No eligible employees found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Partially Available -->
+    <section class="result-section">
+      <h3>Partially Available Resources</h3>
+      <p>Employees with some remaining capacity during the required period.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Remaining Capacity</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let employee of getList('partialAvailability')">
+              <td>{{ employee.employeeName || employee.employee_name || '-' }}</td>
+              <td>{{ employee.remainingCapacity ?? employee.remaining_capacity ?? 'See details' }}</td>
+              <td>{{ employee.skillReason || employee.skillReason || 'Partially available' }}</td>
+            </tr>
+
+            <tr *ngIf="getList('partialAvailability').length === 0">
+              <td colspan="6" style="text-align: center;">No partially available resources.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Future Availability -->
+    <section class="result-section">
+      <h3>Future Availability</h3>
+      <p>Employees who may become available after the required start date.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Available From</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let employee of getList('futureAvailability')">
+              <td>{{ employee.employeeName || employee.employee_name || '-' }}</td>
+              <td>{{ employee.availableFrom || employee.available_from | date:'dd-MMM-yyyy'}}</td>
+              <td>{{ employee.reason || employee.message || 'Available later' }}</td>
+            </tr>
+
+            <tr *ngIf="getList('futureAvailability').length === 0">
+              <td colspan="3" style="text-align:center">No future-availability options.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Allocation Conflicts -->
+    <section class="result-section">
+      <h3>Allocation Conflicts</h3>
+      <p>Employees with overlapping confirmed allocations.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Conflicting Dates</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+
+          <tbody>
+           
+        <tr *ngFor="let employee of getList('conflicts')">
+          <td>
+            {{ employee.employeeName || employee.employee_name || '-' }}
+          </td>
+
+          <td>
+            <ng-container *ngIf="employee.conflictingAllocations?.length; else noDates">
+              <div *ngFor="let allocation of employee.conflictingAllocations" class="mb-2">
+
+                <div>
+                  <strong>
+                    {{ allocation.allocationStart | date:'dd-MMM-yyyy' }}
+                    -
+                    {{ allocation.allocationEnd | date:'dd-MMM-yyyy' }}
+                  </strong>
+                </div>
+
+                <div class="text-muted small">
+                  Project: {{ allocation.projectName || 'Unknown' }}
+                </div>
+
+                <div class="text-muted small">
+                  Allocation: {{ allocation.allocationPercentage }}%
+                  | Status: {{ allocation.allocationStatus }}
+                </div>
+
+              </div>
+            </ng-container>
+
+            <ng-template #noDates>
+              <span class="text-muted">No allocation dates available</span>
+            </ng-template>
+          </td>
+
+          <td>
+            Overlapping confirmed allocation
+          </td>
+        </tr>
+
+
+            <tr *ngIf="getList('conflicts').length === 0">
+              <td colspan="3" style="text-align: center;">No allocation conflicts found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Excluded Resources -->
+    <section class="result-section">
+      <h3>Excluded Resources</h3>
+      <p>Resources who do not meet one or more mandatory eligibility constraints.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Location</th>
+              <th>Exclusion Reason</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let employee of getList('excluded')">
+              <td>{{ employee.employeeName || employee.employee_name || '-' }}</td>
+              <td>{{ employee.location || '-' }}</td>
+             <td>
+        <ng-container
+          *ngIf="employee.reasons?.length > 0; else noReason">
+
+          <ul class="mb-0 ps-3" style="text-align: center;">
+            <li *ngFor="let reason of employee.reasons">
+              {{ reason }}
+            </li>
+          </ul>
+
+        </ng-container>
+
+        <ng-template #noReason>
+          No exclusion reason provided.
+        </ng-template>
+      </td>
+            </tr>
+
+            <tr *ngIf="getList('excluded').length === 0">
+              <td colspan="3" style="text-align: center;">No excluded resources.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </ng-container>
+
+
+  <div *ngIf="!projectId && !loading && !errorMessage" class="message">
+    Please select a project to view resource eligibility.
+  </div>
+
+</div>

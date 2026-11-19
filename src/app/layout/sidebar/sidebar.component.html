@@ -1,0 +1,19 @@
+<aside class="sidebar">
+  <a class="brand" routerLink="/dashboard">
+    <div class="brand-logo">RM</div>
+    <div class="brand-text">
+      <h3>Skill Match</h3>
+      <span>Resource Allocation</span>
+    </div>
+  </a>
+
+  <nav class="sidebar-menu">
+    <a *ngFor="let item of menuItems" [routerLink]="item.route ? item.route : null"
+      [routerLinkActive]="item.route ? 'active' : ''" class="menu-item">
+      <i class="bi" [ngClass]="item.icon"></i>
+      <span>{{ item.label }}</span>
+      <i class="bi bi-chevron-right arrow"></i>
+    </a>
+  </nav>
+
+</aside>

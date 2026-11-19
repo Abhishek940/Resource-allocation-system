@@ -1,0 +1,303 @@
+<div class="project-container">
+    <!-- Top Navigation & Breadcrumb -->
+    <div class="top-nav-bar">
+        <button type="button" class="btn-back" (click)="goBack()">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </button>
+
+        <div class="breadcrumb">
+            <i class="bi bi-house-door"></i>
+            <span>/</span>
+            <a routerLink="/dashboard">Dashboard</a>
+            <span>/</span>
+            <span class="active">Project Management</span>
+        </div>
+    </div>
+
+    <!-- Header Banner -->
+    <div class="page-header">
+        <div class="header-icon">
+            <i class="bi bi-folder-check"></i>
+        </div>
+        <div class="header-text">
+            <h2>Project Requirement Definition</h2>
+            <p>
+                Configure project technologies, mandatory competencies, capacity demands,
+                and availability timelines
+            </p>
+        </div>
+
+           <div class="header-action-btn">
+            <a routerLink="/projects" class="btn-add-role">
+                <i class="bi bi-plus-lg"></i> View Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <form class="project-card" (ngSubmit)="saveProject()"  [formGroup]="projectForm" >
+        <!-- Section 1: General Project Overview -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-card-heading"></i>
+                <div>
+                    <h3>Project Overview</h3>
+                    <p>Core project identification, governance, and operating mode</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+
+                 <div class="form-group">
+                    <label for="projectName">Project Name <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-folder"></i>
+                        <input id="projectName" type="text" name="projectName" formControlName="projectName"
+                            placeholder="Project Name" required />
+                    </div>
+                    <small class="field-hint">Official title or client engagement initiative</small>
+                </div>
+
+                 <div class="form-group">
+                    <label for="projectName">Buisness Domain <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-folder"></i>
+                        <input id="projectName" type="text" name="projectName" formControlName="businessDomain"
+                            placeholder="e.g. Enterprise API Modernization" required />
+                    </div>
+                    <small class="field-hint">Official title or client engagement initiative</small>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="projectName">Project Description <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-folder"></i>
+                        <input id="projectName" type="text" name="projectName" formControlName="project_des"
+                            placeholder="e.g. Project Description" required />
+                    </div>
+                    <small class="field-hint">Official title or client engagement initiative</small>
+                </div>
+
+               
+
+
+                <div class="form-group">
+                    <label for="requirementOwner">Requirement Owner <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-person-check"></i>
+                        <input id="requirementOwner" type="text" name="requirementOwner"
+                            formControlName="requirementOwner" placeholder="e.g. Authorized project stakeholder"
+                            required />
+                    </div>
+                    <small class="field-hint">Authorized project manager or delivery lead</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="priority">Requirement Priority <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-flag"></i>
+                        <select id="priority" name="priority" formControlName="requirementPriority" required>
+                            <option value="" disabled>-- Select Mode --</option>
+                            <option [ngValue]="1">Low</option>
+                            <option [ngValue]="2">Medium</option>
+                            <option [ngValue]="3">High</option>
+                          </select>
+                    </div>
+                    <small class="field-hint">Staffing urgency and business criticality</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="availableFrom">Project Start Date</label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-calendar3"></i>
+                        <input id="availableFrom" type="date" name="startFrom"
+                            formControlName="startFrom" />
+                    </div>
+                    <small class="field-hint">Expected date of availability for new assignments</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="workMode">Expected duration <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-geo-alt"></i>
+                        <select id="workMode" name="workMode" formControlName="duration" required>
+                            <option value="" disabled>-- Select Mode --</option>
+                            <option *ngFor="let mode of duration" [value]="mode">
+                                {{ mode }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Work arrangement: On-site, Hybrid, Remote, or As required</small>
+                </div>
+
+                 <div class="form-group">
+                    <label for="workMode">Location / Work Mode <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-geo-alt"></i>
+
+                        <select id="workMode" name="projectLocation" formControlName="location" required>
+                            <option value="" disabled>-- Select Mode --</option>
+                            <option *ngFor="let mode of workModes" [value]="mode">
+                                {{ mode }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Work arrangement: On-site, Hybrid, Remote, or As required</small>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Section 2: Technical & Skill Specifications -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-cpu"></i>
+                <div>
+                    <h3>Technical & Skill Requirements</h3>
+                    <p>Technology stack, mandatory core skills, and minimum proficiency levels</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="requiredTechnology">Required Technology <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-code-square"></i>
+                        <input id="requiredTechnology" type="text" name="requiredTechnology"
+                            formControlName="requiredTechnology" placeholder="e.g. Java Spring Boot REST API"
+                            required />
+                    </div>
+                    <small class="field-hint">Primary technology architecture or solution stack</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="mandatorySkills">Mandatory Skills <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-check-circle text-primary"></i>
+                        <input id="mandatorySkills" type="text" name="mandatorySkills"
+                            formControlName="mandatorySkills" placeholder="e.g. Java, Spring Boot, REST API"
+                            required />
+                    </div>
+                    <small class="field-hint">Non-negotiable required competencies (comma-separated)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="preferredSkills">Preferred Skills</label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-plus-circle"></i>
+                        <input id="preferredSkills" type="text" name="preferredSkills"
+                            formControlName="preferredSkills" placeholder="e.g. MySQL, Docker, AWS" />
+                    </div>
+                    <small class="field-hint">Desirable bonus technologies (comma-separated)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="minProficiency">Minimum Proficiency <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-bar-chart-steps"></i>
+                        <select id="minProficiency" name="minProficiency" formControlName="minProficiency" required>
+                            <option value="" disabled>-- Select Proficiency level --</option>
+                            <option *ngFor="let lvl of proficiencyLevels" [value]="lvl.value">
+                                {{ lvl.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Minimum required rating scale (e.g. 3 out of 5)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="minExperience">Minimum Experience</label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-clock-history"></i>
+                        <input id="minExperience" type="text" name="minExperience" formControlName="minExperience"
+                            placeholder="e.g. 2 years, if required" />
+                    </div>
+                    <small class="field-hint">Experience required in the technology stack</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Resource Capacity & Timelines -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-people"></i>
+                <div>
+                    <h3>Resource Demands & Timelines</h3>
+                    <p>Headcount volume, expected onboarding availability, and project lifespan</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="numberOfResources">Number of Resources <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-person-plus"></i>
+                        <input id="numberOfResources" type="number" name="numberOfResources"
+                            formControlName="numberOfResources" min="1" placeholder="e.g. 3" required />
+                    </div>
+                    <small class="field-hint">Required headcount for this specification</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="requiredAvailability">Required Availability <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-calendar-check"></i>
+                        <select id="requiredAvailability" name="requiredAvailability"
+                            formControlName="requiredAvailability" required>
+                            <option value="" disabled>-- Select Mode --</option>
+                            <option *ngFor="let avail of availabilityOptions" [value]="avail">
+                                {{ avail }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Expected deployment readiness timeline</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="projectDuration">Project Duration <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-hourglass-split"></i>
+                        <select id="projectDuration" name="projectDuration" formControlName="projectDuration"
+                            required>
+                            <option value="" disabled>-- Select Mode --</option>
+                            <option *ngFor="let dur of durationOptions" [value]="dur">
+                                {{ dur }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Expected duration of the engagement</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="projectDuration">Project Status <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-hourglass-split"></i>
+                        <select formControlName="status" name="status">
+                        <option [ngValue]="0">-- Select Status --</option>
+                        <option [ngValue]="1">Pending</option>
+                        <option [ngValue]="2">Active</option>
+                        <option [ngValue]="3">Hold</option>
+                        <option [ngValue]="4">Completed</option>
+                        <option [ngValue]="5">Rejected</option>
+                        <option [ngValue]="6">Draft</option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Expected duration of the engagement</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Action Buttons -->
+        <div class="form-actions">
+           
+            <div class="action-right">
+                <button type="button" class="btn-reset" (click)="resetForm()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                </button>
+                <button type="submit" class="btn-submit">
+                    <i class="bi bi-check-lg"></i> Save
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

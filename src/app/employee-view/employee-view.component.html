@@ -1,0 +1,528 @@
+<div class="employee-container">
+    <!-- Top Navigation & Breadcrumb -->
+    <div class="top-nav-bar">
+        <button type="button" class="btn-back" (click)="goBack()">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </button>
+
+        <div class="breadcrumb">
+            <i class="bi bi-house-door"></i>
+            <span>/</span>
+            <a routerLink="/dashboard">Dashboard</a>
+            <span>/</span>
+            <a routerLink="/employee">Employee Management</a>
+            <span>/</span>
+            <span class="active">Employee View</span>
+        </div>
+    </div>
+
+    <!-- Header Banner -->
+    <div class="page-header">
+        <div class="header-icon">
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="header-text">
+            <h2>Employee View</h2>
+            <p>View configured employee attributes, verified skill competencies, and resource availability</p>
+        </div>
+
+        <div class="header-action-btn"  *ngIf="role?.trim() !== 'L&K Administrator'">
+            <a routerLink="/add-employee" class="btn-add-role">
+                <i class="bi bi-plus-lg"></i> Add Employee
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="employee-card">
+        <!-- Section: Employee Information -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-person-lines-fill"></i>
+                <div>
+                    <h3>Employee Directory</h3>
+                    <p>Core organizational profiles, competencies, and allocation status</p>
+                </div>
+            </div>
+
+            <!-- Employee View Table -->
+            <div class="table-container">
+                <table class="role-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="width: 105px;">Code</th>
+                            <th>Employee Name</th>
+                            <th>Designation</th>
+                            <th>Department</th>
+                            <th>Location</th>
+                            <th>Primary Skill</th>
+                            <th style="width: 95px;">Proficiency</th>
+                            <th style="width: 100px;">Experience</th>
+                            <th style="width: 125px;">Resource Status</th>
+                            <th style="width: 100px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let emp of paginatedEmployeeList; let i = index">
+                            <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+                            <td>
+                                <span class="emp-code-pill">{{ emp.employeeCode || ('EMP-' + emp.id) }}</span>
+                            </td>
+                            <td>
+                                <strong>{{ emp.employeeName }}</strong>
+                            </td>
+                            <td>{{ emp.designation }}</td>
+                            <td>{{ emp.department }}</td>
+                            <td>
+                                <i class="bi bi-geo-alt text-muted"></i> {{ emp.location }}
+                            </td>
+                            <td>
+                                <span class="skill-tag">{{ emp.primaryskill }}</span>
+                            </td>
+                            <td>
+                                <span class="proficiency-badge">{{ emp.proficiency }}</span>
+                            </td>
+                            <td>{{ emp.experience }}</td>
+                            <td>
+                                <span class="status-badge" [ngClass]="getStatusBadgeClass(emp.resourceStatus)">
+                                    {{ emp.resourceStatus }}
+                                </span>
+                            </td>
+                            <td class="action-cell" >
+                                <button class="btn btn-sm btn-outline-primary" (click)="openViewModal(emp)" title="View Employee">
+                            <i class="bi bi-eye"></i>
+                            </button>
+                                <button type="button" class="btn-action btn-edit" (click)="openEditModal(emp)" title="Edit Employee"  *ngIf="role?.trim() !== 'L&K Administrator'">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button type="button" class="btn-action btn-delete" (click)="deleteEmployee(emp.id)" title="Delete Employee"  *ngIf="role?.trim() !== 'L&K Administrator'">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Empty State -->
+                        <tr *ngIf="!isLoading && totalRecords === 0">
+                            <td colspan="11" class="empty-state">
+                                <i class="bi bi-info-circle"></i> No employees found.
+                            </td>
+                        </tr>
+
+                        <!-- Loading State -->
+                        <tr *ngIf="isLoading">
+                            <td colspan="11" class="loading-state">
+                                <i class="bi bi-hourglass-split"></i> Loading employees...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" *ngIf="totalRecords > 0">
+                <div class="pagination-info">
+                    Showing <strong>{{ getStartIndex() }}</strong> to <strong>{{ getEndIndex() }}</strong> of <strong>{{ totalRecords }}</strong> entries
+                </div>
+
+                <div class="pagination-actions">
+                    <!-- Page Size Selector -->
+                    <div class="page-size-wrapper">
+                        <label for="empPageSizeSelect">Show</label>
+                        <select id="empPageSizeSelect" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+                            <option *ngFor="let size of pageSizes" [value]="size">{{ size }}</option>
+                        </select>
+                        <span>entries</span>
+                    </div>
+
+                    <!-- Page Navigation Buttons -->
+                    <div class="page-nav">
+                        <button type="button" class="btn-page" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </button>
+
+                        <button 
+                            *ngFor="let page of getPageNumbers()" 
+                            type="button" 
+                            class="btn-page btn-page-num" 
+                            [class.active]="page === currentPage" 
+                            (click)="setPage(page)">
+                            {{ page }}
+                        </button>
+
+                        <button type="button" class="btn-page" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- edit employee -->
+<!-- ============================================================== -->
+<div *ngIf="isEditModalOpen" class="modal-overlay" (click)="closeEditModal()">
+    <div class="modal-card modal-card-lg" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <div class="modal-header-info">
+                <h3><i class="bi bi-pencil-square"></i> Edit Employee Profile</h3>
+                <span class="emp-code-badge" *ngIf="selectedEmployeeCode">{{ selectedEmployeeCode }}</span>
+            </div>
+            <button type="button" class="btn-close-modal" (click)="closeEditModal()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <form [formGroup]="editEmployeeForm" (ngSubmit)="updateEmployee()">
+            <div class="modal-body modal-body-scrollable">
+                <!-- Section 1: Basic Employee Details -->
+                <div class="modal-section-title">
+                    <i class="bi bi-person-lines-fill"></i> Basic Employee Details
+                </div>
+                <div class="modal-form-grid">
+                    <div class="form-group">
+                        <label for="empName">Employee Name <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-person"></i>
+                            <input id="empName" type="text" formControlName="employeeName" placeholder="e.g. Rahul Sharma" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="empDesignation">Designation <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-briefcase"></i>
+                            <input id="empDesignation" type="text" formControlName="designation" placeholder="e.g. Full-Stack Engineer" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="empDepartment">Department / SBU <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-building"></i>
+                            <select id="empDepartment" formControlName="department" required>
+                                <option value="" disabled>-- Select Department --</option>
+                                <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="empLocation">Location <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-geo-alt"></i>
+                            <select id="empLocation" formControlName="location" required>
+                                <option value="" disabled>-- Select Location --</option>
+                                <option *ngFor="let loc of locations" [value]="loc">{{ loc }}</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Skills & Competencies -->
+                <div class="modal-section-title">
+                    <i class="bi bi-lightning-charge-fill"></i> Skills & Competencies
+                </div>
+                <div class="modal-form-grid">
+                    <div class="form-group">
+                        <label for="empPrimarySkill">Primary Skill <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-star-fill text-warning"></i>
+                            <input id="empPrimarySkill" type="text" formControlName="primaryskill" placeholder="e.g. Angular / TypeScript" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="empProficiency">Proficiency (1 to 5) <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-bar-chart-steps"></i>
+                            <select id="empProficiency" formControlName="proficiency" required>
+                                <option value="" disabled>-- Select Rating --</option>
+                                <option *ngFor="let lvl of proficiencyLevels" [value]="lvl.value">{{ lvl.label }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="empExperience">Relevant Experience <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-clock-history"></i>
+                            <input id="empExperience" type="text" formControlName="experience" placeholder="e.g. 4.5 Years" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="empSecondarySkills">Secondary Skills</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-tags"></i>
+                            <input id="empSecondarySkills" type="text" formControlName="secondarySkills" placeholder="e.g. Node.js, Spring Boot" />
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="empTertiarySkills">Tertiary Skills</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-puzzle"></i>
+                            <input id="empTertiarySkills" type="text" formControlName="tertiarySkills" placeholder="e.g. Docker, Git, CI/CD" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Validation & Certifications -->
+                <div class="modal-section-title">
+                    <i class="bi bi-shield-check"></i> Validation & Certifications
+                </div>
+                <div class="modal-form-grid">
+                    <div class="form-group">
+                        <label for="empValidationStatus">Validation Status <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-check2-all"></i>
+                            <select id="empValidationStatus" formControlName="validationStatus" required>
+                                <option value="" disabled>-- Select Validation Type --</option>
+                                <option *ngFor="let status of validationStatuses" [value]="status">{{ status }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="empAssessmentScore">Assessment Score</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-award"></i>
+                            <input id="empAssessmentScore" type="text" formControlName="assessmentScore" placeholder="e.g. 88% or 4.5/5" />
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="empCertifications">Certifications</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-patch-check"></i>
+                            <input id="empCertifications" type="text" formControlName="certifications" placeholder="e.g. AWS Certified Architect, Scrum Master" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Resource Status & Allocation -->
+                <div class="modal-section-title">
+                    <i class="bi bi-kanban"></i> Resource Status & Allocation
+                </div>
+                <div class="modal-form-grid">
+                    <div class="form-group">
+                        <label for="empResourceStatus">Resource Status <span class="required">*</span></label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-diagram-3"></i>
+                            <select id="empResourceStatus" formControlName="resourceStatus" required>
+                                <option value="" disabled>-- Select Status --</option>
+                                <option *ngFor="let res of resourceStatuses" [value]="res">{{ res }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="empAvailableFrom">Available From</label>
+                        <div class="input-with-icon">
+                            <i class="bi bi-calendar3"></i>
+                            <input id="empAvailableFrom" type="date" formControlName="availableFrom" />
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="empProjectExperience">Project Experience</label>
+                        <textarea id="empProjectExperience" formControlName="projectExperience" rows="3" placeholder="Summarize relevant client projects or architectural contributions..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-reset" (click)="closeEditModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-submit" [disabled]="editEmployeeForm.invalid">
+                    <i class="bi bi-check-lg"></i> Update Employee
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- employee-detail------------------------------------------>
+
+
+<div *ngIf="isViewModalOpen && selectedEmployee" class="modal-overlay"
+     (click)="closeViewModal()">
+
+  <div class="modal-card modal-card-lg view-employee-card"
+       (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="view-header">
+      <div class="profile-heading">
+        <div class="profile-avatar">
+          <i class="bi bi-person-fill"></i>
+        </div>
+
+        <div>
+          <h3>{{ selectedEmployee.employeeName }}</h3>
+          <p>{{ selectedEmployee.designation }}</p>
+          <span class="emp-code-badge">
+            {{ selectedEmployee.employeeCode }}
+          </span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-close-modal"
+              (click)="closeViewModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body modal-body-scrollable view-body">
+
+      <!-- Basic Details -->
+      <div class="detail-section">
+        <div class="detail-section-title">
+          <i class="bi bi-person-lines-fill"></i>
+          Basic Employee Details
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Employee Name</label>
+            <strong>{{ selectedEmployee.employeeName || '-' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Designation</label>
+            <strong>{{ selectedEmployee.designation || '-' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Department / SBU</label>
+            <strong>{{ selectedEmployee.department || '-' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Location</label>
+            <strong>
+              <i class="bi bi-geo-alt"></i>
+              {{ selectedEmployee.location || '-' }}
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills -->
+      <div class="detail-section">
+        <div class="detail-section-title">
+          <i class="bi bi-lightning-charge-fill"></i>
+          Skills & Competencies
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Primary Skill</label>
+            <strong>{{ selectedEmployee.primaryskill || '-' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Proficiency</label>
+            <strong class="proficiency-value">
+              {{ selectedEmployee.proficiency || '-' }} / 5
+            </strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Relevant Experience</label>
+            <strong>{{ selectedEmployee.experience || '-' }} Years</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Secondary Skills</label>
+            <strong>{{ selectedEmployee.secondarySkills || '-' }}</strong>
+          </div>
+
+          <div class="detail-item full-width">
+            <label>Tertiary Skills</label>
+            <strong>{{ selectedEmployee.tertiarySkills || '-' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation -->
+      <div class="detail-section">
+        <div class="detail-section-title">
+          <i class="bi bi-shield-check"></i>
+          Validation & Certifications
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Validation Status</label>
+            <strong>{{ selectedEmployee.validationStatus || '-' }}</strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Assessment Score</label>
+            <strong>{{ selectedEmployee.assessmentScore || '-' }}</strong>
+          </div>
+
+          <div class="detail-item full-width">
+            <label>Certifications</label>
+            <strong>{{ selectedEmployee.certifications || '-' }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resource Allocation -->
+      <div class="detail-section">
+        <div class="detail-section-title">
+          <i class="bi bi-kanban"></i>
+          Resource Status & Allocation
+        </div>
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Resource Status</label>
+            <strong>
+              <span class="status-badge">
+                {{ selectedEmployee.resourceStatus || '-' }}
+              </span>
+            </strong>
+          </div>
+
+          <div class="detail-item">
+            <label>Available From</label>
+            <strong>
+              {{ selectedEmployee.availableFrom
+                 ? (selectedEmployee.availableFrom | date:'d-MMM-yyyy')
+                 : '-' }}
+            </strong>
+          </div>
+
+          <div class="detail-item full-width">
+            <label>Project Experience</label>
+            <p class="project-description">
+              {{ selectedEmployee.projectExperience || 'No project experience available.' }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer view-footer">
+      <button type="button" class="btn-reset"
+              (click)="closeViewModal()">
+        <i class="bi bi-x-lg"></i> Close
+      </button>
+
+     
+    </div>
+
+  </div>
+</div>
+
+

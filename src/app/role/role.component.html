@@ -1,0 +1,104 @@
+<div class="employee-container">
+    <!-- Top Navigation & Breadcrumb -->
+    <div class="top-nav-bar">
+        <button type="button" class="btn-back" (click)="goBack()">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </button>
+
+        <div class="breadcrumb">
+            <i class="bi bi-house-door"></i>
+            <span>/</span>
+            <a routerLink="/dashboard">Dashboard</a>
+            <span>/</span>
+            <span class="active">Role Management</span>
+        </div>
+    </div>
+
+    <!-- Header Banner -->
+    <div class="page-header">
+        <div class="header-icon">
+            <i class="bi bi-person-badge"></i>
+        </div>
+        <div class="header-text">
+            <h2>Role Management</h2>
+            <p>Configure employee roles, permissions, and access levels</p>
+        </div>
+        <div class="header-action-btn">
+            <a routerLink="/role-view" class="btn-view-list">
+                <i class="bi bi-table"></i> View Role List
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <form class="employee-card" [formGroup]="roleForm" (ngSubmit)="saveRole()">
+        <!-- Section 1: Basic Employee Information -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-person-lines-fill"></i>
+                <div>
+                    <h3>Role Information</h3>
+                    <p>Core organizational and personal identification</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="empName">Employee Name <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-person"></i>
+                        <select id="empName" name="empName" formControlName="emp_id" required>
+                            <option value disabled selected>-- Select Employee --</option>
+                            <option *ngFor="let emp of employeelist" [value]="emp.id">
+                                {{ emp.employeeName}}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Employee Name</small>
+                </div>
+                <div class="form-group">
+                    <label for="roleName">Role Name <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-person"></i>
+                        <input id="roleName" type="text" name="roleName" formControlName="roleName"
+                            placeholder="e.g. System Administration" required />
+                    </div>
+                    <small class="field-hint">Role name of the employee</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="field-label">
+                        Status <span class="required">*</span>
+                    </label>
+
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" name="status" formControlName="status" value="1" />
+                            Active
+                        </label>
+
+                        <label class="radio-option">
+                            <input type="radio" name="status" formControlName="status" value="0" />
+                            Inactive
+                        </label>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Form Action Buttons -->
+        <div class="form-actions">
+
+            <div class="action-right">
+                <button type="button" class="btn-reset" (click)="resetForm()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                </button>
+                <button type="submit" class="btn-submit">
+                    <i class="bi bi-check-lg"></i> Save Role
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,56 @@
+
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Sidebar stays on the left */
+.app-sidebar {
+  display: block;
+  flex: 0 0 250px;
+  width: 250px;
+  min-height: 100vh;
+  transition: width 0.3s ease, flex-basis 0.3s ease;
+}
+
+/* Main content stays beside the sidebar */
+.app-main {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+}
+
+/* Header stays at the top */
+app-header {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Routed components render in this area */
+.page-content {
+  display: block;
+  flex: 1 0 auto;
+  min-width: 0;
+  padding: 20px 24px;
+}
+
+/* Footer stays after the content */
+app-footer {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Collapsed sidebar */
+.app-layout.sidebar-closed .app-sidebar {
+  flex-basis: 70px;
+  width: 70px;
+}

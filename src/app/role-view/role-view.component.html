@@ -1,0 +1,209 @@
+<div class="employee-container">
+    <!-- Top Navigation & Breadcrumb -->
+    <div class="top-nav-bar">
+        <button type="button" class="btn-back" (click)="goBack()">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </button>
+
+        <div class="breadcrumb">
+            <i class="bi bi-house-door"></i>
+            <span>/</span>
+            <a routerLink="/dashboard">Dashboard</a>
+            <span>/</span>
+            <a routerLink="/role">Role Management</a>
+            <span>/</span>
+            <span class="active">Role View</span>
+        </div>
+    </div>
+
+    <!-- Header Banner -->
+    <div class="page-header">
+        <div class="header-icon">
+            <i class="bi bi-person-badge"></i>
+        </div>
+        <div class="header-text">
+            <h2>Role View</h2>
+            <p>View configured employee roles, permissions, and access levels</p>
+        </div>
+        <div class="header-action-btn">
+            <a routerLink="/role" class="btn-add-role">
+                <i class="bi bi-plus-lg"></i> Add Role
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="employee-card">
+        <!-- Section: Role Information -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-person-lines-fill"></i>
+                <div>
+                    <h3>Role Information</h3>
+                    <p>Core organizational and personal identification</p>
+                </div>
+            </div>
+
+            <!-- Role View Table -->
+            <div class="table-container">
+                <table class="role-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 70px;">#</th>
+                            <th>Employee Name</th>
+                            <th>Role Name</th>
+                            <th style="width: 150px;">Status</th>
+                            <th style="width: 130px; text-align: center;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let role of paginatedRoleList; let i = index">
+                            <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+                            <td>
+                                <strong>{{ role.employeeName || getEmployeeName(role.emp_id) }}</strong>
+                            </td>
+                            <td>{{ role.roleName }}</td>
+                            <td>
+                                <span class="status-badge" [ngClass]="role.status == 1 ? 'status-active' : 'status-inactive'">
+                                    {{ role.status == 1 ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td class="action-cell">
+                                <button type="button" class="btn-action btn-edit" (click)="openEditModal(role)" title="Edit Role">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button type="button" class="btn-action btn-delete" (click)="deleteRole(role.id)" title="Delete Role">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+
+                        <!-- Empty State -->
+                        <tr *ngIf="!isLoading && totalRecords === 0">
+                            <td colspan="5" class="empty-state">
+                                <i class="bi bi-info-circle"></i> No roles found.
+                            </td>
+                        </tr>
+
+                        <!-- Loading State -->
+                        <tr *ngIf="isLoading">
+                            <td colspan="5" class="loading-state">
+                                <i class="bi bi-hourglass-split"></i> Loading roles...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            <div class="pagination-bar" *ngIf="totalRecords > 0">
+                <div class="pagination-info">
+                    Showing <strong>{{ getStartIndex() }}</strong> to <strong>{{ getEndIndex() }}</strong> of <strong>{{ totalRecords }}</strong> entries
+                </div>
+
+                <div class="pagination-actions">
+                    <!-- Page Size Selector -->
+                    <div class="page-size-wrapper">
+                        <label for="pageSizeSelect">Show</label>
+                        <select id="pageSizeSelect" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+                            <option *ngFor="let size of pageSizes" [value]="size">{{ size }}</option>
+                        </select>
+                        <span>entries</span>
+                    </div>
+
+                    <!-- Page Navigation Buttons -->
+                    <div class="page-nav">
+                        <button type="button" class="btn-page" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
+                            <i class="bi bi-chevron-left"></i> Previous
+                        </button>
+
+                        <button 
+                            *ngFor="let page of getPageNumbers()" 
+                            type="button" 
+                            class="btn-page btn-page-num" 
+                            [class.active]="page === currentPage" 
+                            (click)="setPage(page)">
+                            {{ page }}
+                        </button>
+
+                        <button type="button" class="btn-page" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Role Modal -->
+<div *ngIf="isEditModalOpen" class="modal-overlay" (click)="closeEditModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3><i class="bi bi-pencil-square"></i> Edit Role</h3>
+            <button type="button" class="btn-close-modal" (click)="closeEditModal()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <form [formGroup]="editRoleForm" (ngSubmit)="updateRole()">
+            <div class="modal-body">
+                <!-- Field 1: Employee Name -->
+                <div class="form-group">
+                    <label for="editEmpName">Employee Name <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-person"></i>
+                        <select id="editEmpName" formControlName="emp_id" required>
+                            <option value="" disabled>-- Select Employee --</option>
+                            <option *ngFor="let emp of employeelist" [value]="emp.id">
+                                {{ emp.employeeName }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Employee Name</small>
+                </div>
+
+                <!-- Field 2: Role Name -->
+                <div class="form-group">
+                    <label for="editRoleName">Role Name <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-person-badge"></i>
+                        <select id="editRoleName" formControlName="roleName" required>
+                            <option value="" disabled>-- Select Role Name --</option>
+                            <option *ngFor="let role of roleOptions" [value]="role">
+                                {{ role }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Role name of the employee</small>
+                </div>
+
+                <!-- Field 3: Status -->
+                <div class="form-group">
+                    <label class="field-label">
+                        Status <span class="required">*</span>
+                    </label>
+                    <div class="radio-group">
+                        <label class="radio-option">
+                            <input type="radio" formControlName="status" value="1" />
+                            Active
+                        </label>
+                        <label class="radio-option">
+                            <input type="radio" formControlName="status" value="0" />
+                            Inactive
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-reset" (click)="closeEditModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="btn-submit">
+                    <i class="bi bi-check-lg"></i> Update Role
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,36 @@
+<header class="topbar">
+  <div class="header-left">
+    <button class="menu-toggle" type="button" (click)="onToggle()" aria-label="Toggle sidebar">
+      <i class="bi bi-list"></i>
+    </button>
+    <h2>{{ pageTitle }}</h2>
+  </div>
+
+
+  <div class="header-right">
+    <button class="header-icon" type="button" aria-label="Notifications">
+      <i class="bi bi-bell"></i>
+    </button>
+    <div class="admin-profile dropdown">
+  <!-- dropdown-toggle and data-bs-toggle attributes -->
+  <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+    <div class="profile-avatar me-2">
+      <i class="bi bi-person-fill"></i>
+    </div>
+  <div class="profile-info">
+  <span>Welcome,</span>
+  <strong>{{ role }}</strong>
+</div>
+  </a>
+
+  <!-- Dropdown Menu -->
+  <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="profileDropdown">
+    <li>
+      <a class="dropdown-item text-danger" href="#" (click)="logOut()">
+        <i class="bi bi-box-arrow-right me-2"></i> Logout
+      </a>
+    </li>
+  </ul>
+</div>
+  </div>
+</header>

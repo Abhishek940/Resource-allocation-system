@@ -1,0 +1,1004 @@
+<div class="matching-page">
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-message">
+    <i class="bi bi-arrow-repeat spin"></i>
+    <span>Loading resource matching...</span>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="errorMessage" class="error-message">
+    <i class="bi bi-exclamation-circle-fill"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">
+        <i class="bi bi-stars"></i> RESOURCE ALLOCATION / AI-ENABLED SKILL MATCHING
+      </span>
+      <h2>Resource Matching & Project Deployment</h2>
+      <p>
+        Generative AI skill transferability reasoning, ranked employee recommendations, and squad deployment optimization.
+      </p>
+    </div>
+
+    <div class="header-right-badges">
+      <!-- AI Status -->
+      <div class="ai-engine-chip" [class.connected]="aiStatus?.success"
+        [class.heuristic]="!aiStatus?.success && !aiStatus?.geminiConfigured"
+        [class.token-error]="!aiStatus?.success && aiStatus?.geminiConfigured"
+        (click)="checkAiStatus()" title="Click to test / re-verify Gemini API Token connection">
+        <i class="bi" [ngClass]="checkingAiStatus ? 'bi-arrow-repeat spin' : (aiStatus?.success ? 'bi-check-circle-fill' : 'bi-stars')"></i>
+        <span>
+          {{ aiStatus?.success
+              ? 'Groq  (' + (aiStatus?.model || '1.5-flash') + ') Active'
+              : (aiStatus?.geminiConfigured ? 'Groq Token Error' : 'AI Engine: Built-In Active')
+          }}
+        </span>
+      </div>
+
+      <div class="project-status" *ngIf="result">
+        <span class="status-dot"></span>
+        {{ result.status || 'Active' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Project Selector -->
+  <div class="project-selector-card">
+    <div class="selector-row">
+      <div class="selector-field">
+        <label for="projectId" class="form-label">
+          <i class="bi bi-folder-fill"></i> Project
+        </label>
+        <select id="projectId" class="form-select project-dropdown" [value]="projectId ?? ''" (change)="onProjectChange($event)">
+          <option value="">-- Select Project for Resource Deployment --</option>
+          <option *ngFor="let project of projects" [value]="project.id">
+            {{ project.projectName }} (Code: {{ project.projectCode }})
+          </option>
+        </select>
+      </div>
+
+      <div class="selector-actions" *ngIf="result">
+        <button type="button" class="ai-action-btn" [class.active]="activeTab === 'ai-squad'"
+          (click)="setActiveTab('ai-squad')">
+          <i class="bi bi-stars"></i>
+          AI Deployment Plan
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Project detail -->
+  <div class="project-card" *ngIf="result">
+    <div class="project-icon">
+      <i class="bi bi-briefcase"></i>
+    </div>
+    <div class="project-info">
+      <div class="project-header-row">
+        <span class="muted-label">
+          Project Code: <strong>{{ result.projectCode ?? projectCode }}</strong>
+        </span>
+        <span class="headcount-badge" *ngIf="result.numberOfResources">
+          <i class="bi bi-person-fill-check"></i>
+          {{ result.numberOfResources }} Resource{{ result.numberOfResources > 1 ? 's' : '' }} Required
+        </span>
+      </div>
+      <h3>{{ result.projectName || 'Project Matching Results' }}</h3>
+      
+      <div class="project-meta">
+        <span *ngIf="result.ProjectStartDate || result.projectStartDate">
+          <i class="bi bi-calendar3"></i>
+          Start: {{ (result.ProjectStartDate || result.projectStartDate) | date:'mediumDate' }}
+        </span>
+
+        <span>
+          <i class="bi bi-people-fill"></i>
+          {{ allCount }} Total Candidates Evaluated
+        </span>
+
+        <span class="meta-tag-mandatory" *ngIf="result.MandatorySkill">
+          <i class="bi bi-cpu-fill"></i>
+          Mandatory Skills: {{ result.MandatorySkill }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation View Tabs -->
+  <div class="view-tabs-container" *ngIf="result">
+    <button type="button" class="view-tab-btn" [class.active]="activeTab === 'ranking'"
+      (click)="setActiveTab('ranking')">
+      <i class="bi bi-person-lines-fill"></i>
+      Candidate Evaluation & Ranking
+      <span class="tab-badge">{{ filteredCandidates.length }}</span>
+    </button>
+
+    <button type="button" class="view-tab-btn ai-tab" [class.active]="activeTab === 'ai-squad'"
+      (click)="setActiveTab('ai-squad')">
+      <i class="bi bi-stars"></i>
+      AI Project Deployment Plan & Squad
+      <!--
+      <span class="tab-badge ai-badge" *ngIf="aiTeamDeployment">
+        {{ aiTeamDeployment.teamSynergyScore }}% Synergy
+      </span>
+    -->
+      <span class="tab-badge ai-badge" *ngIf="!aiTeamDeployment">
+        AI Recommended
+      </span>
+    </button>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB 1: CANDIDATE EVALUATION & RANKING VIEW -->
+  <!-- ======================================================== -->
+  <div class="tab-content" *ngIf="result && activeTab === 'ranking'">
+    <div class="results-card">
+      <!-- Section Heading -->
+      <div class="section-heading">
+        <div>
+          <h3>
+            {{ selectedView === 'eligible' ? 'Ranked Eligible Candidates' : selectedView === 'excluded'
+                  ? 'Excluded Candidates' : 'All Evaluated Candidates'
+            }}
+          </h3>
+          <p>
+            {{ selectedView === 'eligible'
+                ? 'Candidates ranked by AI-weighted suitability score, skill coverage, and operational readiness.'
+                : selectedView === 'excluded'
+                  ? 'Candidates excluded from eligible matches with diagnostic reasons.'
+                  : 'Full talent pool analysis for this project deployment.'
+            }}
+          </p>
+        </div>
+
+        <span class="result-count">
+          {{ filteredCandidates.length }} results
+        </span>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="filter-row">
+        <div class="search-box">
+          <i class="bi bi-search"></i>
+          <input type="text" placeholder="Search candidate name or employee code..." [value]="searchText"
+            (input)="searchText = $any($event.target).value" />
+        </div>
+
+        <select
+          class="form-select candidate-filter"
+          aria-label="Filter candidates by eligibility"
+          [value]="selectedView"
+          (change)="showCandidates($any($event.target).value)">
+          <option value="eligible">Eligible Only ({{ eligibleCount }})</option>
+          <option value="excluded">Excluded Only ({{ excludedCount }})</option>
+          <option value="all">All Candidates ({{ allCount }})</option>
+        </select>
+      </div>
+
+      <!-- Candidate Table -->
+      <div class="table-responsive">
+        <table class="candidate-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Candidate</th>
+            <!--  <th>AI Recommended Role</th>-->
+               <th>
+               <span class="source-badge ai-source" *ngIf="getRecommendationSource() === 'generative_ai'">
+               <i class="bi bi-stars"></i> Groq AI Recommended Role
+            </span>
+
+            <span class="source-badge php-source" *ngIf="getRecommendationSource() === 'heuristic'">
+              <i class="bi bi-code-slash"></i> PHP Rule-Based Recommended Role
+            </span>
+
+            <span class="source-badge mixed-source" *ngIf="getRecommendationSource() === 'mixed'">
+              Mixed Sources
+            </span>
+
+            <span class="source-badge" *ngIf="getRecommendationSource() === 'unavailable'">
+              Source Unavailable
+            </span>
+          </th>
+              <th>Skill Coverage</th>
+              <th>Proficiency</th>
+              <th>Experience</th>
+              <th>
+            AI Deployment Readiness
+
+            <span
+              class="source-badge ai-source"
+              *ngIf="getRecommendationSource() === 'generative_ai'">
+              <i class="bi bi-stars"></i> Groq AI
+            </span>
+
+            <span
+              class="source-badge php-source"
+              *ngIf="getRecommendationSource() === 'heuristic'">
+              <i class="bi bi-code-slash"></i> PHP Rule-Based
+            </span>
+
+            <span
+              class="source-badge mixed-source"
+              *ngIf="getRecommendationSource() === 'mixed'">
+              Mixed Sources
+            </span>
+
+            <span class="source-badge"
+              *ngIf="getRecommendationSource() === 'unavailable'">
+              Source Unavailable
+            </span>
+          </th>
+              <th>Suitability Score</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr
+              *ngFor="let candidate of filteredCandidates; let i = index; trackBy: trackByRank"
+              [class.top-candidate-row]="isCandidateEligible(candidate) && getRank(candidate, i) <= 3">
+
+              <!-- Rank -->
+              <td>
+                <span
+                  class="rank-badge"
+                  [class.top-rank]="getRank(candidate, i) <= 3"
+                  *ngIf="isCandidateEligible(candidate)">
+                  #{{ getRank(candidate, i) }}
+                </span>
+                <span class="rank-muted" *ngIf="!isCandidateEligible(candidate)">—</span>
+              </td>
+
+              <!-- Employee Info -->
+              <td>
+                <div class="employee-cell">
+                  <div class="employee-avatar">
+                    {{ getEmployeeName(candidate).charAt(0).toUpperCase() }}
+                  </div>
+                  <div>
+                    <strong>{{ getEmployeeName(candidate) }}</strong>
+                    <small>{{ getEmployeeCode(candidate) }}</small>
+                  </div>
+                </div>
+              </td>
+
+              <!-- AI Recommended Role -->
+              <td>
+                <span class="role-badge" *ngIf="isCandidateEligible(candidate)">
+                  <i class="bi bi-briefcase-fill"></i>
+                  {{ getRecommendedRole(candidate) }}
+                </span>
+                <span class="role-badge muted" *ngIf="!isCandidateEligible(candidate)">
+                  On Hold / Excluded
+                </span>
+              </td>
+
+              <!-- Skill Coverage -->
+              <td>
+                <div class="coverage-cell">
+                  <div class="coverage-bar">
+                    <span [style.width.%]="getSkillCoverage(candidate)"></span>
+                  </div>
+                  <span>{{ getSkillCoverage(candidate) }}%</span>
+                </div>
+              </td>
+
+              <!-- Proficiency -->
+              <td>
+                <span class="metric-tag">{{ getProficiencyScore(candidate) }}%</span>
+              </td>
+
+              <!-- Experience -->
+              <td>
+                <span class="metric-tag">{{ getExperienceScore(candidate) }}%</span>
+              </td>
+
+              <!-- AI Deployment Readiness -->
+              <td>
+                <span
+                  class="readiness-pill"
+                  [ngClass]="getReadinessBadgeClass(getDeploymentReadiness(candidate))">
+                  <i class="bi" [ngClass]="getReadinessIcon(getDeploymentReadiness(candidate))"></i>
+                  {{ getDeploymentReadiness(candidate) }}
+                </span>
+              </td>
+
+              <!-- Overall Score -->
+              <td>
+                <div class="overall-score">
+                  <div class="score-track">
+                    <span
+                      [ngClass]="getScoreClass(getSuitabilityScore(candidate))"
+                      [style.width.%]="getSuitabilityScore(candidate)">
+                    </span>
+                  </div>
+                  <strong>{{ getSuitabilityScore(candidate) | number:'1.2-2' }}%</strong>
+                </div>
+              </td>
+
+              <!-- Eligibility -->
+              <td>
+                <span
+                  class="eligibility-badge"
+                  [class.eligible]="isCandidateEligible(candidate)"
+                  [class.ineligible]="!isCandidateEligible(candidate)">
+                  {{ isCandidateEligible(candidate) ? 'Eligible' : 'Excluded' }}
+                </span>
+              </td>
+
+              <!-- Actions -->
+              <td>
+                <div class="action-buttons-cell">
+                  <button
+                    type="button"
+                    class="details-button"
+                    (click)="openDetails(candidate)"
+                    title="View Full Profile">
+                    View
+                    <i class="bi bi-arrow-right"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="ai-mini-btn"
+                    (click)="loadCandidateAiDeepDive(candidate)"
+                    title="Deep-Dive Generative AI Assessment">
+                    <i class="bi bi-stars"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Empty Results -->
+            <tr *ngIf="filteredCandidates.length === 0">
+              <td colspan="10" class="empty-state">
+                <i class="bi bi-search"></i>
+                <h4>No Candidates Found</h4>
+                <p>Try modifying your search query or selecting a different eligibility filter.</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TAB 2: AI PROJECT SQUAD DEPLOYMENT PLAN VIEW -->
+  <!-- ======================================================== -->
+  <div class="tab-content" *ngIf="result && activeTab === 'ai-squad'">
+    <!-- AI Squad Hero Banner -->
+    <div class="ai-hero-card">
+      <div class="ai-hero-top">
+        <div class="ai-hero-tag">
+          <i class="bi bi-stars"></i>
+          GENERATIVE AI PROJECT SQUAD RECOMMENDATION
+        </div>
+
+        <button type="button" class="ai-refresh-btn" (click)="loadAiTeamSquad()" [disabled]="loadingAiSquad">
+          <i class="bi" [ngClass]="loadingAiSquad ? 'bi-arrow-repeat spin' : 'bi-arrow-clockwise'"></i>
+          {{ loadingAiSquad ? 'Analyzing...' : 'Re-Generate AI Plan' }}
+        </button>
+      </div>
+
+      <div class="ai-hero-body">
+        <div class="ai-hero-text">
+          <h2>{{ aiTeamDeployment?.projectName || result.projectName }} Deployment Strategy</h2>
+          <p class="ai-summary-quote">
+            "{{ aiTeamDeployment?.executiveSummary || 'Analyzing candidate profiles against project constraints to formulate optimal deployment squad...' }}"
+          </p>
+        </div>
+   
+        <!--
+        <div class="ai-synergy-metric">
+          <div class="synergy-ring">
+            <span class="synergy-val">{{ aiTeamDeployment?.teamSynergyScore || 85 }}%</span>
+            <span class="synergy-lbl">Squad Synergy</span>
+          </div>
+          <span
+            class="health-badge"
+            [class.optimal]="aiTeamDeployment?.deploymentHealth === 'Optimal'"
+            [class.stable]="aiTeamDeployment?.deploymentHealth === 'Stable'"
+            [class.caution]="aiTeamDeployment?.deploymentHealth === 'Caution'">
+            <i class="bi bi-shield-check"></i>
+            {{ aiTeamDeployment?.deploymentHealth || 'Optimal' }} Health
+          </span>
+        </div>
+      -->
+      </div>
+
+      <!-- Quick Metrics Grid -->
+      <div class="ai-metrics-row">
+        <div class="ai-metric-box">
+          <span class="metric-title">Target Resources</span>
+          <span class="metric-number">
+            {{ aiTeamDeployment?.deployedCount || 1 }} / {{ aiTeamDeployment?.requiredHeadcount || 1 }}
+          </span>
+          <small class="metric-sub">Resources deployed</small>
+        </div>
+
+        <div class="ai-metric-box">
+          <span class="metric-title">Mandatory Skill Coverage</span>
+          <span class="metric-number text-success">
+            {{ aiTeamDeployment?.mandatoryCoveragePercentage || 100 }}%
+          </span>
+          <small class="metric-sub">Core project competencies</small>
+        </div>
+
+        <div class="ai-metric-box">
+          <span class="metric-title">Preferred Skill Coverage</span>
+          <span class="metric-number text-purple">
+            {{ aiTeamDeployment?.preferredCoveragePercentage || 80 }}%
+          </span>
+          <small class="metric-sub">Secondary capabilities</small>
+        </div>
+
+        <div class="ai-metric-box">
+          <span class="metric-title">Deployment Velocity</span>
+          <span class="metric-number text-primary">Sprint 1 Ready</span>
+          <small class="metric-sub">Immediate readiness</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommended Squad Grid -->
+    <div class="squad-section" *ngIf="aiTeamDeployment?.recommendedSquad?.length > 0">
+      <div class="section-title-row">
+        <div>
+          <h3>
+            <i class="bi bi-award-fill"></i>
+            Recommended Deployment Squad ({{ aiTeamDeployment.recommendedSquad.length }} Resources)
+          </h3>
+         </div>
+      </div>
+
+      <div class="squad-grid">
+        <div class="squad-card" *ngFor="let member of aiTeamDeployment.recommendedSquad; let idx = index">
+          <div class="squad-card-badge-row">
+            <span class="seat-badge">Squad Member #{{ idx + 1 }}</span>
+            <span class="readiness-mini-badge" [class.ready]="member.readiness?.includes('Immediate')">
+              <i class="bi bi-check-circle-fill"></i>
+              {{ member.readiness }}
+            </span>
+          </div>
+
+          <div class="squad-member-header">
+            <div class="squad-avatar">
+              {{ member.employeeName.charAt(0).toUpperCase() }}
+            </div>
+            <div>
+              <h4>{{ member.employeeName }}</h4>
+              <span class="member-code">{{ member.employeeCode }}</span>
+            </div>
+          </div>
+
+          <div class="assigned-role-box">
+            <i class="bi bi-person-workspace"></i>
+           <strong>{{ getSquadMemberRole(member) }}</strong>
+          </div>
+
+          <div class="squad-stats">
+            <div class="stat-col">
+              <span class="lbl">Suitability</span>
+              <strong>{{ member.suitabilityScore }}%</strong>
+            </div>
+            <div class="stat-col">
+              <span class="lbl">Experience</span>
+              <strong>{{ member.experience }} Yrs</strong>
+            </div>
+          </div>
+
+          <div class="squad-skills">
+            <span class="skills-label">Core Competencies:</span>
+            <div class="skill-chips">
+              <span class="skill-chip" *ngFor="let s of member.keyContributions">{{ s }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phased Deployment Roadmap -->
+    <div class="roadmap-card" *ngIf="aiTeamDeployment?.deploymentRoadmap?.length > 0">
+      <div class="roadmap-header">
+        <div>
+          <h3><i class="bi bi-signpost-split-fill"></i> Phased Project Deployment Roadmap</h3>
+          <p>AI-formulated milestone trajectory for squad onboarding and delivery execution.</p>
+        </div>
+      </div>
+
+      <div class="timeline-grid">
+        <div class="timeline-card" *ngFor="let step of aiTeamDeployment.deploymentRoadmap; let sIdx = index">
+          <div class="step-num">{{ sIdx + 1 }}</div>
+          <div class="step-body">
+            <div class="step-top">
+              <h4>{{ step.phase }}</h4>
+              <span class="timeline-pill">{{ step.timeline }}</span>
+            </div>
+            <p>{{ step.focus }}</p>
+            <div class="step-owner">
+              <i class="bi bi-person-badge"></i>
+              Lead By: <strong>{{ step.lead }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contingency & Backup Candidates -->
+    <div class="backup-card" *ngIf="aiTeamDeployment?.backupOptions?.length">
+      <h4><i class="bi bi-shield-shaded"></i> Contingency Deployment Alternatives</h4>
+      <p class="backup-sub">Identified backups if candidate availability or allocation shifts:</p>
+
+      <div class="backup-list">
+        <div class="backup-item" *ngFor="let alt of aiTeamDeployment.backupOptions">
+          <div class="backup-person">
+            <i class="bi bi-person-check"></i>
+            <strong>{{ alt.employeeName }}</strong>
+          </div>
+          <span class="backup-score">{{ alt.suitabilityScore }}% Match</span>
+          <span class="backup-note">{{ alt.note }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="no-squad-message" *ngIf="aiTeamDeployment &&
+         (!aiTeamDeployment.recommendedSquad || aiTeamDeployment.recommendedSquad.length === 0)">
+   <div class="no-squad-content" style="text-align: center;">
+     <i class="bi bi-exclamation-circle"></i><h3>No Eligible Resources Available</h3>
+    <p>{{ aiTeamDeployment.executiveSummary || 'No eligible employees are available to form a deployment squad for this project.' }}
+    </p>
+  </div>
+
+  </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- CANDIDATE DETAILS PANEL  -->
+  <!-- ======================================================== -->
+  <div class="detail-overlay" *ngIf="selectedCandidate" (click)="closeDetails()">
+    <aside class="detail-panel" (click)="$event.stopPropagation()">
+
+      <!--  Header -->
+      <div class="detail-header">
+        <div>
+          <span class="eyebrow">CANDIDATE DEPLOYMENT PROFILE</span>
+          <h3>{{ getEmployeeName(selectedCandidate) }}</h3>
+          <p>{{ getEmployeeCode(selectedCandidate) }}</p>
+        </div>
+
+        <button type="button" class="close-button" aria-label="Close candidate details" (click)="closeDetails()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Suitability & Category Header -->
+      <div class="detail-score">
+        <div>
+          <span class="muted-label">Overall Suitability</span>
+          <h2>{{ getSuitabilityScore(selectedCandidate) | number:'1.2-2' }}%</h2>
+          <span class="category-badge">{{ getCategory(selectedCandidate) }}</span>
+        </div>
+
+        <div class="detail-rank">
+          {{ isCandidateEligible(selectedCandidate) ? '#' + (selectedCandidate.rank ?? '—') : '—' }}
+        </div>
+      </div>
+
+      <!-- Eligibility Banner -->
+      <!-- Eligibility Banner -->
+        <div
+          class="eligibility-message"
+          [class.eligible]="isCandidateEligible(selectedCandidate)"
+          [class.ineligible]="!isCandidateEligible(selectedCandidate)">
+
+          <i
+            [class]="isCandidateEligible(selectedCandidate)
+              ? 'bi bi-check-circle-fill'
+              : 'bi bi-exclamation-triangle-fill'">
+          </i>
+
+          <span>
+            {{ isCandidateEligible(selectedCandidate)
+              ? 'Eligible for deployment'
+              : 'Not deployable for this project at present' }}
+          </span>
+        </div>
+
+        <!-- Existing Project Allocation Details -->
+<div class="allocation-conflict-section" *ngIf="selectedCandidate.hasConflict">
+  <h4><i class="bi bi-exclamation-triangle-fill"></i>
+    Existing Project Allocation
+  </h4>
+
+  <p class="conflict-description">
+    This candidate is already allocated to another project.
+    The following commitment is preventing deployment to
+    {{ result?.projectName }}.
+  </p>
+
+  <div class="conflict-card"
+  *ngFor="let allocation of getAllocationConflictDetails(selectedCandidate)">
+
+  <div class="conflict-header">
+    <span>Project Name:{{ allocation.projectName }}({{ allocation.projectCode }})</span>&nbsp;
+    </div>
+
+  <div class="conflict-allocation">&nbsp;
+    {{ allocation.allocationPercentage }}% Allocated
+  </div>
+
+  <div class="conflict-details">
+
+    <div>
+      <label>Allocation Start</label>&nbsp;
+      <strong>{{ allocation.startDate | date:'dd-MMM-yyyy' }}</strong>
+    </div>
+
+    <div>
+      <label>Allocation End</label>&nbsp;
+      <strong>{{ allocation.endDate | date:'dd-MMM-yyyy' }}</strong>
+    </div>
+
+    <div>
+      <label>Available After</label>&nbsp;
+      <strong>{{ allocation.availableAfter || 'Not specified' }}</strong>
+    </div>
+
+    <div>
+      <label>Remaining Capacity</label>&nbsp;
+      <strong>0%</strong>
+    </div>
+
+  </div>
+
+  <p class="conflict-warning">
+    Candidate cannot be assigned to the current project until
+    the existing allocation is resolved.
+  </p>
+
+</div>
+
+</div>
+      <!-- ======================================================== -->
+      <!-- GENERATIVE AI DEPLOYMENT RECOMMENDATION  -->
+      <!-- ======================================================== -->
+      <div class="ai-candidate-box">
+        <div class="ai-box-header">
+          <div class="ai-box-title">
+            <i class="bi bi-stars"></i>
+            <span>GENERATIVE AI DEPLOYMENT RECOMMENDATION</span>
+          </div>
+
+          <button type="button" class="ai-mini-btn" (click)="loadCandidateAiDeepDive(selectedCandidate)"
+            title="Generate Deep-Dive AI Evaluation">
+           <i class="bi" [class.bi-arrow-clockwise]="!aiDeepDiveLoading" [class.bi-arrow-repeat]="aiDeepDiveLoading">
+        </i>
+          </button>
+        </div>
+
+        
+
+        <!-- Executive Narrative -->
+        <blockquote class="ai-executive-quote">
+          "{{ getAiExecutiveSummary(selectedCandidate) }}"
+        </blockquote>
+
+        <!-- Readiness & Role Pills -->
+       <!-- Readiness & Role -->
+<div class="ai-pills-row">
+
+  <!-- Actual Backend Deployment Decision -->
+  <div class="deployment-readiness">
+    <span class="readiness-pill"
+      [ngClass]="getReadinessBadgeClass(getDeploymentReadiness(selectedCandidate))">
+
+      <i class="bi"
+        [ngClass]="getReadinessIcon(getDeploymentReadiness(selectedCandidate))">
+      </i>
+
+      {{ getDeploymentReadiness(selectedCandidate) }}
+    </span>
+  </div>
+
+  <!-- Existing Allocation Conflict -->
+  <span class="role-pill" *ngIf="selectedCandidate.hasConflict">
+    <i class="bi bi-briefcase"></i>
+    Currently allocated to another project
+  </span>
+
+  <!-- Future Availability -->
+  <span class="rampup-pill"
+    *ngIf="!selectedCandidate.hasConflict &&
+      selectedCandidate.availabilityStatus === 'Future Availability'">
+
+    <i class="bi bi-calendar-event"></i>
+
+    Available From:
+    {{ getEmployee(selectedCandidate)?.availableFrom | date:'dd-MMM-yyyy' }}
+  </span>
+
+  <!-- Productivity Time -->
+<div class="productivity-info"
+  *ngIf="!selectedCandidate?.hasConflict">
+
+  <strong>Estimated Ramp-up:</strong>
+  {{ getRampUpTime(selectedCandidate) }}
+
+  <small>
+    Estimated time required to understand the project
+    and start contributing effectively after joining.
+  </small>
+
+</div>
+
+  <!-- Recommended Role -->
+  <span class="role-pill">
+    <i class="bi bi-person-badge"></i>
+    Role: {{ getRecommendedRole(selectedCandidate) }}
+  </span>
+
+</div>
+
+        <!-- Key Strengths -->
+        <div class="ai-strengths-box" *ngIf="getKeyStrengths(selectedCandidate)?.length">
+          <h5><i class="bi bi-lightning-charge-fill"></i> Key AI-Identified Strengths:</h5>
+          <ul>
+            <li *ngFor="let strength of getKeyStrengths(selectedCandidate)">
+              <i class="bi bi-check2-circle"></i>
+              <span>{{ strength }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Transferable Skill Reasoning -->
+        <div class="ai-transferable-box" *ngIf="getAiDeployment(selectedCandidate)?.transferableSkillAnalysis?.length">
+          <h5><i class="bi bi-shuffle"></i> Semantic Transferability Intelligence:</h5>
+          <div class="transferable-item" *ngFor="let item of getAiDeployment(selectedCandidate).transferableSkillAnalysis">
+            <div class="transfer-header">
+              <span class="req-chip">{{ item.requiredSkill }}</span>
+              <i class="bi bi-arrow-left-right"></i>
+              <span class="cand-chip">{{ item.candidateSkill }}</span>
+              <span class="sim-badge">{{ item.similarityScore }}% Fit</span>
+            </div>
+            <p class="transfer-reasoning">{{ item.aiReasoning }}</p>
+          </div>
+        </div>
+
+        <!-- Deployment Risks & Mitigations -->
+        <div class="ai-risks-box" *ngIf="getAiDeploymentRisks(selectedCandidate)?.length">
+          <h5><i class="bi bi-shield-exclamation"></i> Deployment Challenge & Improvement Plan:</h5>
+          <div class="risk-item" *ngFor="let r of getAiDeploymentRisks(selectedCandidate)">
+            <div class="risk-title">
+              <i class="bi bi-exclamation-circle"></i>
+              <strong>{{ r.risk }}</strong>
+            </div>
+            <div class="risk-mitigation">
+              <i class="bi bi-arrow-return-right"></i>
+              <span>Improvement Plan: {{ r.mitigation }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+   
+      <!-- Exclusion Reasons -->
+<div *ngIf="!isCandidateEligible(selectedCandidate)" class="skill-group">
+
+  <h4>Why This Candidate Cannot Be Deployed Now</h4>
+
+  <ul *ngIf="getCandidateExclusionReasons(selectedCandidate).length">
+    <li *ngFor="let reason of getCandidateExclusionReasons(selectedCandidate)">
+      {{ reason }}
+    </li>
+  </ul>
+
+  <p *ngIf="!getCandidateExclusionReasons(selectedCandidate).length">
+    {{ getExplanationText(selectedCandidate) }}
+  </p>
+
+</div>
+
+      <!-- Score Breakdown -->
+      <h4>Evaluation Criterion</h4>
+      <div
+        class="detail-metric"
+        *ngFor="let metric of [
+          { label: 'Required skills', score: getSkillCoverage(selectedCandidate), weight: 40 },
+          { label: 'Proficiency', score: getProficiencyScore(selectedCandidate), weight: 25 },
+          { label: 'Experience', score: getExperienceScore(selectedCandidate), weight: 15 },
+          { label: 'Evidence', score: getEvidenceScore(selectedCandidate), weight: 10 },
+          { label: 'Availability', score: getAvailabilityScore(selectedCandidate), weight: 10 }
+        ]">
+        <div class="metric-heading">
+          <span>{{ metric.label }} <small>({{ metric.weight }}%)</small></span>
+          <strong>{{ metric.score }}%</strong>
+        </div>
+        <div class="metric-track">
+          <span [style.width.%]="metric.score"></span>
+        </div>
+      </div>
+
+      <!-- Skill Analysis -->
+      <h4>Skill  Analysis</h4>
+
+      <!-- Matched Mandatory Skills -->
+      <div class="skill-group">
+        <strong>Matched mandatory skills</strong>
+        <div class="skill-tags">
+          <span
+            class="skill-tag success"
+            *ngFor="let skill of getSkillList(getSkillAnalysis(selectedCandidate).matchedMandatorySkills)">
+            {{ skill }}
+          </span>
+          <small *ngIf="!getSkillList(getSkillAnalysis(selectedCandidate).matchedMandatorySkills).length">
+            No matched mandatory skills.
+          </small>
+        </div>
+      </div>
+
+      <!-- Matched Preferred Skills -->
+      <div class="skill-group">
+        <strong>Matched preferred skills</strong>
+        <div class="skill-tags">
+          <span
+            class="skill-tag"
+            *ngFor="let skill of getSkillList(getSkillAnalysis(selectedCandidate).matchedPreferredSkills)">
+            {{ skill }}
+          </span>
+          <small *ngIf="!getSkillList(getSkillAnalysis(selectedCandidate).matchedPreferredSkills).length">
+            No preferred skills matched.
+          </small>
+        </div>
+      </div>
+
+      <!-- Missing Mandatory Skills -->
+      <div class="skill-group">
+        <strong>Missing mandatory skills</strong>
+        <div class="skill-tags">
+          <span
+            class="skill-tag danger"
+            *ngFor="let skill of getSkillList(getSkillAnalysis(selectedCandidate).missingMandatorySkills)">
+            {{ skill }}
+          </span>
+          <small *ngIf="!getSkillList(getSkillAnalysis(selectedCandidate).missingMandatorySkills).length">
+            No missing mandatory skills.
+          </small>
+        </div>
+      </div>
+
+      <!-- Evidence Verification -->
+      <h4>Evidence & Verification Summary</h4>
+      <div class="evidence-summary">
+        <span>
+          <i [class]="hasCertification(selectedCandidate) ? 'bi bi-check-circle-fill text-success' : 'bi bi-dash-circle'"></i>
+          Certification Recorded
+        </span>
+        <span>
+          <i [class]="hasProjectEvidence(selectedCandidate) ? 'bi bi-check-circle-fill text-success' : 'bi bi-dash-circle'"></i>
+          Project Experience Validated
+        </span>
+      </div>
+
+      <!-- Stakeholder Review Note -->
+      <p class="review-note">
+        <i class="bi bi-info-circle"></i>
+        Final resource allocation should be reviewed and approved by the deployment stakeholder.
+      </p>
+
+    </aside>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- CANDIDATE AI MODAL -->
+  <!-- ======================================================== -->
+  <div class="detail-overlay" *ngIf="aiDeepDiveCandidate" (click)="closeAiDeepDive()">
+    <div class="ai-modal-card" (click)="$event.stopPropagation()">
+      <div class="ai-modal-header">
+        <div>
+          <span class="eyebrow"><i class="bi bi-stars"></i> GENERATIVE AI </span>
+          <h3>{{ getEmployeeName(aiDeepDiveCandidate) }}</h3>
+          <p>Project Deployment Analysis for: <strong>{{ result?.projectName }}</strong></p>
+        </div>
+
+        <button type="button" class="close-button" (click)="closeAiDeepDive()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Modal Loading State -->
+      <div *ngIf="loadingCandidateAi" class="modal-loading">
+        <i class="bi bi-arrow-repeat spin"></i>
+        <span>Generative AI Deployment Assessment...</span>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="ai-modal-body" *ngIf="!loadingCandidateAi">
+       <div class="ai-badge-row">
+
+  <!-- Backend deployment readiness -->
+  <span class="readiness-pill"
+    [ngClass]="getReadinessBadgeClass(getDeploymentReadiness(aiDeepDiveCandidate))">
+
+    <i class="bi"
+      [ngClass]="getReadinessIcon(getDeploymentReadiness(aiDeepDiveCandidate))">
+    </i>
+
+    {{ getDeploymentReadiness(aiDeepDiveCandidate) }}
+  </span>
+
+  <!-- Backend-controlled recommended role -->
+  <span class="role-pill">
+    <i class="bi bi-briefcase"></i>
+    {{ getRecommendedRole(aiDeepDiveCandidate) }}
+  </span>
+
+  <!-- AI model information -->
+  <span class="model-pill">
+    <i class="bi bi-cpu"></i>
+    {{ getAiDeployment(aiDeepDiveCandidate)?.modelUsed
+        || 'Enterprise Generative Heuristic Engine' }}
+  </span>
+
+</div>
+
+        <div class="deep-dive-quote">
+         <p>
+  "{{ getAiExecutiveSummary(aiDeepDiveCandidate) }}"
+</p>
+        </div>
+
+        <!-- Strengths -->
+        <div class="deep-dive-section" *ngIf="selectedCandidateAiInsights?.keyStrengths?.length">
+          <h4><i class="bi bi-check-circle-fill text-success"></i> Strategic Advantages & Strengths:</h4>
+          <ul>
+            <li *ngFor="let s of selectedCandidateAiInsights.keyStrengths">{{ s }}</li>
+          </ul>
+        </div>
+
+        <!-- Actionable Ramp-up Roadmap -->
+        <div class="deep-dive-section" *ngIf="selectedCandidateAiInsights?.skillGaps?.length">
+          <h4><i class="bi bi-signpost"></i> Targeted Ramp-Up Action Plan:</h4>
+          <div class="gap-card" *ngFor="let g of selectedCandidateAiInsights.skillGaps">
+            <div class="gap-top">
+              <strong>{{ g.skill }}</strong>
+              <span class="gap-days">{{ g.estimatedDays }} Days Ramp-up</span>
+            </div>
+            <p>{{ g.remedy }}</p>
+          </div>
+        </div>
+
+        <!-- Challenge & Improvement Plan -->
+        <div class="deep-dive-section" *ngIf="selectedCandidateAiInsights?.deploymentRisks?.length">
+          <h4><i class="bi bi-shield-alert text-warning"></i> Deployment Risk Management:</h4>
+          <div class="risk-card" *ngFor="let r of selectedCandidateAiInsights.deploymentRisks">
+            <div class="risk-item-row">
+              <span class="risk-label">Challenge:</span>
+              <span>{{ r.risk }}</span>
+            </div>
+            <div class="risk-item-row mitigation">
+              <span class="risk-label">Improvement Plan:</span>
+              <span>{{ r.mitigation }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ai-modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeAiDeepDive()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Project Selected State -->
+  <div class="empty-state page-empty-state" *ngIf="!loading && !result && !errorMessage">
+    <i class="bi bi-cpu"></i>
+    <h4>Select a Project</h4>
+    <p>Select a project above to run AI skill matching and explore optimal resource deployment recommendations.</p>
+  </div>
+
+</div>

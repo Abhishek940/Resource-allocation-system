@@ -1,0 +1,280 @@
+<div class="employee-container">
+    <!-- Top Navigation & Breadcrumb -->
+    <div class="top-nav-bar">
+        <button type="button" class="btn-back" (click)="goBack()">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </button>
+
+        <div class="breadcrumb">
+            <i class="bi bi-house-door"></i>
+            <span>/</span>
+            <a routerLink="/dashboard">Dashboard</a>
+            <span>/</span>
+            <span class="active">Employee Management</span>
+        </div>
+    </div>
+
+    <!-- Header Banner -->
+    <div class="page-header">
+        <div class="header-icon">
+            <i class="bi bi-person-badge"></i>
+        </div>
+        <div class="header-text">
+            <h2>Employee Skill Profile Registration</h2>
+            <p>Configure employee attributes, verified skill competencies, and resource availability</p>
+        </div>
+        <div class="header-action-btn">
+            <a routerLink="/employee-view" class="btn-view-list">
+                <i class="bi bi-table"></i> View Employee List
+            </a>
+        </div>
+    </div>
+
+    <!-- Success Notification -->
+    <div *ngIf="successMessage" class="alert-success-banner">
+        <i class="bi bi-check-circle-fill"></i>
+        <div>
+            <strong>Success!</strong> Employee profile for <strong>{{ employee.employeeName || employee.employeeCode ||
+                'the candidate' }}</strong> has been recorded successfully.
+        </div>
+    </div>
+
+    <!-- Main Form Card -->
+    <form class="employee-card" [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
+        <!-- Section 1: Basic Employee Information -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-person-lines-fill"></i>
+                <div>
+                    <h3>Basic Employee Details</h3>
+                    <p>Core organizational and personal identification</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                
+                <div class="form-group">
+                    <label for="empName">Employee Name <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-person"></i>
+                        <input id="empName" type="text" name="employeeName" formControlName ="employeeName"
+                            placeholder="e.g. Rahul Sharma" required />
+                    </div>
+                    <small class="field-hint">Full name of the employee</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="designation">Designation <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-briefcase"></i>
+                        <input id="designation" type="text" name="designation" formControlName="designation"
+                            placeholder="e.g. Full-Stack Engineer" required />
+                    </div>
+                    <small class="field-hint">Current professional title</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="department">Department / SBU <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-building"></i>
+                        <select id="department" name="department" formControlName="department" required>
+                            <option value="" disabled selected>-- Select Department --</option>
+                            <option *ngFor="let dept of departments" [value]="dept">
+                                {{ dept }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Organizational business unit</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">Location <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-geo-alt"></i>
+                        <select id="location" name="location" formControlName="location" required>
+                            <option value="" disabled selected>-- Select Location --</option>
+                            <option *ngFor="let loc of locations" [value]="loc">
+                                {{ loc }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Work location or remote status</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Skills & Competencies -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-lightning-charge-fill"></i>
+                <div>
+                    <h3>Skills & Competencies</h3>
+                    <p>Technical proficiencies, experience duration, and proficiency grading</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="primarySkill">Primary Skill <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-star-fill text-warning"></i>
+                        <input id="primarySkill" type="text" name="primarySkill" formControlName="primaryskill"
+                            placeholder="e.g. Angular / TypeScript" required />
+                    </div>
+                    <small class="field-hint">Main technology or core specialization</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="proficiency">Skill Proficiency (1 to 5) <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-bar-chart-steps"></i>
+                        <select id="proficiency" name="proficiency" formControlName="proficiency" required>
+                            <option value="" disabled selected>-- Select Rating --</option>
+                            <option *ngFor="let lvl of proficiencyLevels" [value]="lvl.value">
+                                {{ lvl.label }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Proficiency rating from 1 to 5</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="experience">Relevant Experience <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-clock-history"></i>
+                        <input id="experience" type="text" name="experience" formControlName="experience"
+                            placeholder="e.g. 4.5 Years" required />
+                    </div>
+                    <small class="field-hint">Total years of experience in primary skill</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="secondarySkills">Secondary Skills</label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-tags"></i>
+                        <input id="secondarySkills" type="text" name="secondarySkills" formControlName="secondarySkills"
+                            placeholder="e.g. Node.js, Spring Boot, REST APIs" />
+                    </div>
+                    <small class="field-hint">Supporting technologies (comma separated)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="tertiarySkills">Tertiary Skills</label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-puzzle"></i>
+                        <input id="tertiarySkills" type="text" name="tertiarySkills"
+                            formControlName="tertiarySkills" placeholder="e.g. Docker, Git, CI/CD, Agile" />
+                    </div>
+                    <small class="field-hint">Additional competencies & tools</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Assessment & Certifications -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-shield-check"></i>
+                <div>
+                    <h3>Validation & Certifications</h3>
+                    <p>Skill evaluation verification, scores, and accreditations</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="validationStatus">Skill Validation Status <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-check2-all"></i>
+                        <select id="validationStatus" name="validationStatus" formControlName="validationStatus"
+                            required>
+                            <option value="" disabled selected>-- Select Validation Type --</option>
+                            <option *ngFor="let status of validationStatuses" [value]="status">
+                                {{ status }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Self-reported, manager-validated, or assessment-verified</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="assessmentScore">Assessment Score</label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-award"></i>
+                        <input id="assessmentScore" type="text" name="assessmentScore"
+                            formControlName="assessmentScore" placeholder="e.g. 88% or 4.5/5" />
+                    </div>
+                    <small class="field-hint">Latest relevant assessment result, if available</small>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="certifications">Certifications</label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-patch-check"></i>
+                        <input id="certifications" type="text" name="certifications"
+                            formControlName="certifications"
+                            placeholder="e.g. AWS Certified Solutions Architect, Oracle Java SE 11, Scrum Master" />
+                    </div>
+                    <small class="field-hint">Relevant professional credentials & licenses</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Allocation & Project History -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="bi bi-kanban"></i>
+                <div>
+                    <h3>Resource Status & Allocation</h3>
+                    <p>Staffing availability and historical project deliverables</p>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="resourceStatus">Resource Status <span class="required">*</span></label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-diagram-3"></i>
+                        <select id="resourceStatus" name="resourceStatus" formControlName="resourceStatus" required>
+                            <option value="" disabled selected>-- Select Resource Status --</option>
+                            <option *ngFor="let res of resourceStatuses" [value]="res">
+                                {{ res }}
+                            </option>
+                        </select>
+                    </div>
+                    <small class="field-hint">Bench, allocated, partially available, or unavailable</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="availableFrom">Available From</label>
+                    <div class="input-with-icon">
+                        <i class="bi bi-calendar3"></i>
+                        <input id="availableFrom" type="date" name="availableFrom"
+                            formControlName="availableFrom" />
+                    </div>
+                    <small class="field-hint">Expected date of availability for new assignments</small>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="projectExperience">Project Experience</label>
+                    <textarea id="projectExperience" name="projectExperience" formControlName="projectExperience"
+                        rows="3"
+                        placeholder="Summarize relevant assignments, domain experience, client projects, or key architectural contributions..."></textarea>
+                    <small class="field-hint">Relevant assignments or project history</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Action Buttons -->
+        <div class="form-actions">
+          
+            <div class="action-right">
+                <button type="button" class="btn-reset" (click)="resetForm()">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                </button>
+                <button type="submit" class="btn-submit">
+                    <i class="bi bi-check-lg"></i> Save Employee 
+                </button>
+            </div>
+        </div>
+    </form>
+</div>

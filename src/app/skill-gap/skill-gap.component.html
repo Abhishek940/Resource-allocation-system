@@ -1,0 +1,179 @@
+<!-- Project Dropdown -->
+<div class="content-card">
+  <h3>Select Project</h3>
+  <select class="form-select project-dropdown" (change)="onProjectChange($event)">
+    <option value="">-- Select Project --</option>
+    <option  *ngFor="let project of projects" [value]="project.id">
+      {{project.projectName}} ({{project.projectCode}})
+    </option>
+  </select>
+</div>
+
+<div *ngIf="loading" class="loading">
+  Loading resources and skill gaps...
+</div>
+
+<div *ngIf="selectedProject && !loading" class="selected-project-info">
+  <div class="project-title-row">
+    <strong>Project Name:</strong> 
+    <span class="project-value">{{ selectedProject.projectName }} ({{ selectedProject.projectCode }})</span>
+  </div>
+
+  <div class="project-skills-row" *ngIf="selectedProject.mandatorySkills">
+    <strong>Mandatory Skills:</strong>
+    <div class="skills-badge-container">
+      <!-- Splits the comma-separated string into an array and loops through each skill -->
+      <span *ngFor="let skill of selectedProject.mandatorySkills.split(',')" class="status-badge matched">
+        {{ skill.trim() }}
+      </span>
+    </div>
+    <strong>Preferred Skills:</strong>
+    <div class="skills-badge-container">
+      <!-- Splits the comma-separated string into an array and loops through each skill -->
+      <span *ngFor="let skill of selectedProject.preferredSkills.split(',')" class="status-badge matched">
+        {{ skill.trim() }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="!loading && selectedProjectId" style="text-align:center">
+  <div *ngIf="resources.length === 0" class="content-card">
+    No resources found for this project.
+  </div>
+
+  <div class="content-card" *ngFor="let resource of resources">
+    <!-- Employee Header -->
+    <div class="section-header">
+      <div>
+     <h3>{{resource.employeeName}}</h3>
+     <p>Employee Code: {{resource.employeeCode}} | Suitability: {{resource.suitabilityScore}}%
+        </p>
+      </div>
+
+      <span class="review-count">
+        {{resource.category}}
+      </span>
+
+    </div>
+
+    <!-- Skill Gap Summary -->
+    <div class="summary-cards">
+      <div class="summary-card">
+        <span>Total Skills</span>
+        <h2>{{resource.gapData.totalRequiredSkills}}</h2>
+      </div>
+
+      <div class="summary-card matched-card">
+        <span>Matched</span>
+        <h2>{{resource.gapData.matchedSkills}}</h2>
+      </div>
+
+      <div class="summary-card missing-card">
+        <span>Missing</span>
+        <h2>{{resource.gapData.missingSkills}}</h2>
+      </div>
+
+      <div class="summary-card gap-card">
+        <span>Underdeveloped</span>
+        <h2>{{resource.gapData.underdevelopedSkills}}</h2>
+      </div>
+
+    </div>
+
+    <!-- Skill Gap Table -->
+    <h4 class="table-title">Skill Gap Analysis</h4>
+    <div class="table-responsive">
+      <table class="skill-table">
+        <thead>
+          <tr>
+            <th>Skill</th>
+            <th>Required Level(1-5)</th>
+            <th>Actual Level(1-5)</th>
+            <th>Skill Gap</th>
+            <th>Category</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let item of resource.skillGaps">
+            <td class="skill-name">{{item.skill}}</td>
+            <td>{{item.requiredProficiency}} / 5</td>
+            <td>{{item.actualProficiency !== null ? item.actualProficiency + ' / 5': 'Not Available'}}
+            </td>
+            <td>{{item.gap ?? '-'}}</td>
+            <td> <span class="status-badge"
+                [ngClass]="{
+                  'matched': item.gapType === 'Matched',
+                  'missing': item.gapType === 'Missing',
+                  'underdeveloped': item.gapType === 'Underdeveloped'
+                }">
+
+                {{item.gapType}}
+
+              </span>
+            </td>
+
+            <td>
+              <span class="priority-badge"
+                [ngClass]="{
+                  'high': item.priority === 'High',
+                  'medium': item.priority === 'Medium',
+                  'low': item.priority === 'Low'
+                }">
+
+                {{item.priority}}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Learning Recommendations -->
+    <h4 class="table-title">Learning Recommendations</h4>
+    <ng-container *ngIf="getRecommendations(resource.skillGaps) as recommendations">
+    <ng-container *ngIf="recommendations.length > 0; else noRecommendations">
+    <div class="recommendation-item" *ngFor="let item of recommendations">
+
+      <div class="recommendation-header">
+        <h4>{{item.skill}}</h4>
+        <span class="pending-badge">
+          {{item.status}}
+        </span>
+      </div>
+
+      <div class="recommendation-details">
+        <div>
+          <label>Skill Gap</label>
+          <p>{{item.gapType}}</p>
+        </div>
+
+        <div>
+          <label>Recommended Action</label>
+          <p>{{item.recommendedAction}}</p>
+        </div>
+
+        <div>
+          <label>Validation</label>
+          <p>{{item.validation}}</p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </ng-container>
+
+  <ng-template #noRecommendations>
+    <div class="no-recommendations">
+      <p><i class="fa fa-check-circle"></i> No recommendation required.</p>
+    </div>
+  </ng-template>
+
+</ng-container>
+  </div>
+
+</div>

@@ -1,0 +1,232 @@
+<div class="allocation-page">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h2>
+        <i class="bi bi-calendar2-check"></i>
+        Employee Project Allocation
+      </h2>
+      <p>Allocate employees to projects and manage their capacity.</p>
+    </div>
+
+  <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+        data-bs-target="#allocationModal">
+  <i class="bi bi-calendar2-check"></i>&nbsp;Add Allocation</button>
+  </div>
+
+  <!-- Allocation Form -->
+  <div class="card allocation-card mb-4">
+    <div class="card-header">
+      <div>
+        <h5 class="mb-1">Create Allocation</h5>
+        <small>Enter employee, project, period and allocation details.</small>
+      </div>
+      <span class="form-icon">
+        <i class="bi bi-person-workspace"></i>
+      </span>
+    </div>
+
+    <div class="card-body">
+
+      <div class="table-responsive">
+          <table class="table allocation-table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Employee</th>
+                <th>Project</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Allocation</th>
+                <th>Status</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let allocation of allocationlist,let i=index">
+                <td>#{{i+1}}</td>
+                <td>
+                  <div class="name-cell">
+                    <span class="table-avatar">
+                      <i class="bi bi-person"></i>
+                    </span>
+                    <span>
+                      <strong>{{allocation.employeeName}}</strong>
+                      <small>EmployeeCode: {{allocation.employeeCode}}</small>
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <strong>{{allocation.projectName}}</strong>
+                  <small class="d-block text-muted">ProjectCode: {{allocation.projectCode}}</small>
+                </td>
+                <td>{{allocation.allocation_start}}</td>
+                <td>{{allocation.allocation_end}}</td>
+                <td>
+                  <div class="percentage-cell">
+                    <strong>{{allocation.allocation_percentage}}</strong>
+                    <div class="progress">
+                      <div class="progress-bar" style="width:50%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="status-badge status-confirmed">{{allocation.allocation_status}}</span></td>
+                <td>
+                  <div class="action-buttons">
+                   <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteAllocation(allocation.id)" title="Delete">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+                      </tr>
+              <tr *ngIf="allocationList.length === 0">
+            <td colspan="100%" class="text-center text-muted">
+              No records found
+            </td>
+          </tr>
+            
+            </tbody>
+          </table>
+        </div>
+    
+    </div>
+  </div>
+
+  <!-- Allocation Records -->
+  
+<!-- Allocation Records Modal -->
+<div class="modal fade"
+     id="allocationModal"
+     tabindex="-1"
+     aria-labelledby="allocationModalLabel"
+     aria-hidden="true">
+
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content allocation-modal">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <div>
+          <h5 class="modal-title" id="allocationModalLabel">
+            <i class="bi bi-calendar2-check me-2"></i>
+            Allocation Records
+          </h5>
+          <small class="text-muted">
+            View employee project assignments.
+          </small>
+        </div>
+
+        <span class="record-count me-3">5 Records</span>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body p-0">
+        <div class="table-responsive">
+           <form [formGroup]="projectAllocation" (ngSubmit)="saveAllocation()" >
+        <div class="section-heading">
+          <i class="bi bi-diagram-3"></i> Allocation Details
+        </div>
+
+        <div class="row g-4">
+          <!-- Employee -->
+          <div class="col-md-6">
+            <label for="employee_id" class="form-label">
+              Employee <span class="required">*</span>
+            </label>
+            <select id="employee_id" class="form-select" formControlName="employee_id">
+              <option value="">Select employee</option>
+              <option *ngFor="let emp of employeelist" [value]="emp.id">
+                    {{ emp.employeeName}}
+               </option>
+            </select>
+          </div>
+
+          <!-- Project -->
+          <div class="col-md-6">
+            <label for="project_id" class="form-label">
+              Project <span class="required">*</span>
+            </label>
+            <select id="project_id" class="form-select" formControlName="project_id">
+              <option value="">Select project</option>
+               <option *ngFor="let project of projectlist" [value]="project.id">{{project.projectName}}</option>
+            </select>
+          </div>
+
+               
+            <!-- Allocation Start Date -->
+            <div class="col-md-6">
+            <label for="allocation_start" class="form-label">
+                Allocation Start Date <span class="required">*</span>
+            </label>
+            <input type="date" id="allocation_start"  class="form-control" formControlName="allocation_start">
+            </div>
+
+            <div class="col-md-6">
+            <label for="allocation_end" class="form-label">
+                Allocation End Date
+            </label>
+            <input type="date" id="allocation_end" class="form-control" formControlName="allocation_end">
+            </div>
+
+
+          <!-- Percentage -->
+          <div class="col-md-6">
+            <label for="allocation_percentage" class="form-label">
+              Allocation Percentage <span class="required">*</span>
+            </label>
+            <div class="input-group">
+              <input type="number" id="allocation_percentage" class="form-control" formControlName="allocation_percentage" min="0.01" max="100" step="0.01">
+              <span class="input-group-text">%</span>
+            </div>
+            <small class="form-text">
+              Enter a percentage between 0.01% and 100%.
+            </small>
+          </div>
+
+          <!-- Status -->
+          <div class="col-md-6">
+            <label for="allocation_status" class="form-label">
+              Allocation Status <span class="required">*</span>
+            </label>
+            <select id="allocation_status" class="form-select" formControlName="allocation_status">
+              <option [ngValue]="0">Pending</option>
+              <option [ngValue]="1" selected>Confirmed</option>
+              <option [ngValue]="2">Cancelled</option>
+            </select>
+          </div>
+
+        </div>
+
+       <!-- Actions -->
+        <div class="form-actions mt-4">
+          <button type="reset" class="btn btn-light border">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </button>
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Save Allocation
+          </button>
+
+         </div>
+
+      </form>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-light border"
+                data-bs-dismiss="modal">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+</div>

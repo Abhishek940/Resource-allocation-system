@@ -1,0 +1,522 @@
+<div class="employee-container">
+  <!-- Top Navigation & Breadcrumb -->
+  <div class="top-nav-bar">
+    <button type="button" class="btn-back" (click)="goBack()">
+      <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </button>
+
+    <div class="breadcrumb">
+      <i class="bi bi-house-door"></i>
+      <span>/</span>
+      <a routerLink="/dashboard">Dashboard</a>
+      <span>/</span>
+      <a routerLink="/employee">Project Management</a>
+      <span>/</span>
+      <span class="active">Project View</span>
+    </div>
+  </div>
+
+  <!-- Header Banner -->
+  <div class="page-header">
+    <div class="header-icon">
+      <i class="bi bi-people-fill"></i>
+    </div>
+    <div class="header-text">
+      <h2>Project View</h2>
+      <p>
+        View configured employee attributes, verified skill competencies, and
+        resource availability
+      </p>
+    </div>
+    <div class="header-action-btn">
+      <a routerLink="/create-projects" class="btn-add-role">
+        <i class="bi bi-plus-lg"></i> Add Project
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Card -->
+  <div class="employee-card">
+    <!-- Section: Employee Information -->
+    <div class="form-section">
+      <div class="section-header">
+        <i class="bi bi-person-lines-fill"></i>
+        <div>
+          <h3>Project Directory</h3>
+          <p>Core organizational profiles, competencies, and Project status</p>
+        </div>
+      </div>
+
+      <!-- Employee View Table -->
+      <div class="table-container">
+        <table class="role-table">
+          <thead>
+            <tr>
+              <th style="width: 50px">#</th>
+              <th style="width: 105px">Code</th>
+              <th>Project Name</th>
+              <th>Business Domain</th>
+              <th>RequirementOwner</th>
+              <th>Location</th>
+              <th>Required Technology</th>
+              <th style="width: 95px">Mandatory Skill</th>
+              <th style="width: 100px">No.Of Resource</th>
+              <th style="width: 125px">Project Status</th>
+              <th style="width: 100px; text-align: center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let emp of paginatedProjectlist; let i = index">
+              <td>{{ (currentPage - 1) * pageSize + i + 1 }}</td>
+              <td>
+                <span class="emp-code-pill">{{
+                  emp.projectCode || 'PR-' + emp.id
+                }}</span>
+              </td>
+              <td>
+                <strong>{{ emp.projectName }}</strong>
+              </td>
+              <td>{{ emp.businessDomain }}</td>
+              <td>{{ emp.requirementOwner }}</td>
+              <td>
+                <i class="bi bi-geo-alt text-muted"></i> {{ emp.location }}
+              </td>
+              <td>
+                <span class="skill-tag">{{ emp.requiredTechnology }}</span>
+              </td>
+              <td>
+                <span class="proficiency-badge"
+                  >{{ emp.mandatorySkills }}</span
+                >
+              </td>
+              <td>
+                {{ emp.numberOfResources }}
+              </td>
+              <td>
+                <span
+                  class="status-badge"
+                  [ngClass]="getStatusBadgeClass(emp.status)"
+                >
+                  {{ getStatusText(emp.status) }}
+                </span>
+              </td>
+              <td class="action-cell">
+                <button
+                  type="button"
+                  class="btn-action btn-edit"
+                  (click)="openEditModal(emp)"
+                  title="Edit Project"
+                >
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button
+                  type="button"
+                  class="btn-action btn-delete"
+                  (click)="deleteProject(emp.id)"
+                  title="Delete Employee"
+                >
+                  <i class="bi bi-trash"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Empty State -->
+            <tr *ngIf="!isLoading && totalRecords === 0">
+              <td colspan="11" class="empty-state">
+                <i class="bi bi-info-circle"></i> No employees found.
+              </td>
+            </tr>
+
+            <!-- Loading State -->
+            <tr *ngIf="isLoading">
+              <td colspan="11" class="loading-state">
+                <i class="bi bi-hourglass-split"></i> Loading project...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination Bar -->
+      <div class="pagination-bar" *ngIf="totalRecords > 0">
+        <div class="pagination-info">
+          Showing <strong>{{ getStartIndex() }}</strong> to
+          <strong>{{ getEndIndex() }}</strong> of
+          <strong>{{ totalRecords }}</strong> entries
+        </div>
+
+        <div class="pagination-actions">
+          <!-- Page Size Selector -->
+          <div class="page-size-wrapper">
+            <label for="empPageSizeSelect">Show</label>
+            <select
+              id="empPageSizeSelect"
+              [(ngModel)]="pageSize"
+              (change)="onPageSizeChange()"
+            >
+              <option *ngFor="let size of pageSizes" [value]="size">
+                {{ size }}
+              </option>
+            </select>
+            <span>entries</span>
+          </div>
+
+          <!-- Page Navigation Buttons -->
+          <div class="page-nav">
+            <button
+              type="button"
+              class="btn-page"
+              [disabled]="currentPage === 1"
+              (click)="setPage(currentPage - 1)"
+            >
+              <i class="bi bi-chevron-left"></i> Previous
+            </button>
+
+            <button
+              *ngFor="let page of getPageNumbers()"
+              type="button"
+              class="btn-page btn-page-num"
+              [class.active]="page === currentPage"
+              (click)="setPage(page)"
+            >
+              {{ page }}
+            </button>
+
+            <button
+              type="button"
+              class="btn-page"
+              [disabled]="currentPage === totalPages"
+              (click)="setPage(currentPage + 1)"
+            >
+              Next <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- edit employee  -->
+<!-- ============================================================== -->
+<div *ngIf="isEditModalOpen" class="modal-overlay" (click)="closeEditModal()">
+  <div class="modal-card modal-card-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-info">
+        <h3><i class="bi bi-pencil-square"></i> Edit Employee Profile</h3>
+        <span class="emp-code-badge" *ngIf="selectedProjectCode">{{
+          selectedProjectCode
+        }}</span>
+      </div>
+      <button type="button" class="btn-close-modal" (click)="closeEditModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="editProjectForm" (ngSubmit)="updateProject()">
+      <div class="modal-body modal-body-scrollable">
+        <!-- Section 1: Project Overview -->
+        <div class="modal-section-title">
+          <i class="bi bi-card-heading"></i> Project Overview
+        </div>
+
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label for="editProjectName"
+              >Project Name <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-folder"></i>
+              <input
+                id="editProjectName"
+                type="text"
+                formControlName="projectName"
+                placeholder="Project Name"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editBusinessDomain"
+              >Business Domain <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-building"></i>
+              <input
+                id="editBusinessDomain"
+                type="text"
+                formControlName="businessDomain"
+                placeholder="e.g. IT"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="editProjectDescription"
+              >Project Description <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-card-text"></i>
+              <input
+                id="editProjectDescription"
+                type="text"
+                formControlName="project_des"
+                placeholder="Project description"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editRequirementOwner"
+              >Requirement Owner <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-person-check"></i>
+              <input
+                id="editRequirementOwner"
+                type="text"
+                formControlName="requirementOwner"
+                placeholder="Project stakeholder"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editPriority"
+              >Requirement Priority <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-flag"></i>
+              <select
+                id="editPriority"
+                formControlName="requirementPriority"
+                required
+              >
+                <option [ngValue]="null" disabled>-- Select Priority --</option>
+                <option [ngValue]="1">Low</option>
+                <option [ngValue]="2">Medium</option>
+                <option [ngValue]="3">High</option>
+                <option [ngValue]="4">Critical</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editLocation">Location / Work Mode <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-geo-alt"></i>
+              <select id="editLocation" formControlName="location" required>
+                <option [ngValue]="" >-- Select Location --</option>
+                <option *ngFor="let mode of workModes" [ngValue]="mode">
+                  {{ mode }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editDuration"
+              >Expected Duration <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-clock"></i>
+              <select id="editDuration" formControlName="duration" required>
+                <option [ngValue]="null" disabled>-- Select Duration --</option>
+                <option *ngFor="let mode of duration" [ngValue]="mode">
+                  {{ mode }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Technical & Skill Requirements -->
+        <div class="modal-section-title">
+          <i class="bi bi-cpu"></i> Technical &amp; Skill Requirements
+        </div>
+
+        <div class="modal-form-grid">
+          <div class="form-group full-width">
+            <label for="editRequiredTechnology"
+              >Required Technology <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-code-square"></i>
+              <input
+                id="editRequiredTechnology"
+                type="text"
+                formControlName="requiredTechnology"
+                placeholder="e.g. Angular, Laravel, MySQL"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editMandatorySkills"
+              >Mandatory Skills <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-check-circle"></i>
+              <input
+                id="editMandatorySkills"
+                type="text"
+                formControlName="mandatorySkills"
+                placeholder="e.g. Angular, PHP"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editPreferredSkills">Preferred Skills</label>
+            <div class="input-with-icon">
+              <i class="bi bi-plus-circle"></i>
+              <input
+                id="editPreferredSkills"
+                type="text"
+                formControlName="preferredSkills"
+                placeholder="e.g. Node.js, AWS"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editMinProficiency"
+              >Minimum Proficiency <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-bar-chart-steps"></i>
+              <select
+                id="editMinProficiency"
+                formControlName="minProficiency"
+                required
+              >
+                <option value="" disabled>-- Select Proficiency --</option>
+                <option
+                  *ngFor="let lvl of proficiencyLevels"
+                  [value]="lvl.value"
+                >
+                  {{ lvl.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editMinExperience">Minimum Experience</label>
+            <div class="input-with-icon">
+              <i class="bi bi-clock-history"></i>
+              <input
+                id="editMinExperience"
+                type="text"
+                formControlName="minExperience"
+                placeholder="e.g. 2.5 years"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Resource Demands & Timelines -->
+        <div class="modal-section-title">
+          <i class="bi bi-people"></i> Resource Demands &amp; Timelines
+        </div>
+
+        <div class="modal-form-grid">
+          <div class="form-group">
+            <label for="editNumberOfResources"
+              >Number of Resources <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-person-plus"></i>
+              <input
+                id="editNumberOfResources"
+                type="number"
+                formControlName="numberOfResources"
+                min="1"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editRequiredAvailability"
+              >Required Availability <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-calendar-check"></i>
+              <select
+                id="editRequiredAvailability"
+                formControlName="requiredAvailability"
+                required
+              >
+                <option value="" disabled>-- Select Availability --</option>
+                <option
+                  *ngFor="let avail of availabilityOptions"
+                  [value]="avail"
+                >
+                  {{ avail }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editProjectDuration"
+              >Project Duration <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-hourglass-split"></i>
+              <select id="editProjectDuration" formControlName="projectDuration" required>
+                <option value="">-- Select Project Duration --</option>
+                <option *ngFor="let dur of durationOptions" [value]="dur">
+                  {{ dur }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="editStatus"
+              >Project Status <span class="required">*</span></label
+            >
+            <div class="input-with-icon">
+              <i class="bi bi-kanban"></i>
+              <select id="editStatus" formControlName="status" required>
+                <option [ngValue]="null" disabled>-- Select Status --</option>
+                <option [ngValue]="1">Pending</option>
+                <option [ngValue]="2">Active</option>
+                <option [ngValue]="3">Hold</option>
+                <option [ngValue]="4">Completed</option>
+                <option [ngValue]="5">Rejected</option>
+                <option [ngValue]="6">Draft</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn-reset" (click)="closeEditModal()">
+          Cancel
+        </button>
+
+        <button
+          type="submit"
+          class="btn-submit"
+          [disabled]="editProjectForm.invalid"
+        >
+          <i class="bi bi-check-lg"></i> Update Project
+        </button>
+      </div>
+    </form>
+    ```
+  </div>
+</div>

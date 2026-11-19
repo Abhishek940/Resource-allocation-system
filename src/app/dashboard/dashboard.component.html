@@ -1,0 +1,1244 @@
+
+<div class="dashboard-content">
+
+  <!-- PAGE HEADER -->
+  <div class="dashboard-header">
+    <div>
+      <h2>Resource Recommendation Dashboard</h2>
+      <p>Monitor project requirements and discover suitable resources.</p>
+    </div>
+
+    <button class="btn-refresh" (click)="loadDashboardStats()">
+      <i class="bi bi-arrow-clockwise"></i>
+      Refresh
+    </button>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <section class="stats-grid">
+
+    <div class="stat-card clickable" (click)="activeProcjects()">
+      <div class="stat-icon blue">
+        <i class="bi bi-kanban"></i>
+      </div>
+      <div>
+        <span class="stat-label">Total Active Projects</span>
+        <h3>{{ loading ? '...' : states.activeProjects }}</h3>
+        <small>View active projects</small>
+      </div>
+    </div>
+
+    <div class="stat-card clickable" (click)="benchResources()">
+      <div class="stat-icon green">
+        <i class="bi bi-people"></i>
+      </div>
+      <div>
+        <span class="stat-label">Total Bench Resources</span>
+        <h3>{{ loading ? '...' : states.totalBenchResources }}</h3>
+        <small>View bench employees</small>
+      </div>
+    </div>
+
+    <div class="stat-card clickable" (click)="openMatchingResourcesModal()">
+      <div class="stat-icon purple">
+        <i class="bi bi-person-check"></i>
+      </div>
+      <div>
+        <span class="stat-label">Resources Matching Requirements</span>
+        <h3>{{ loading ? '...' : states.matchingResources }}</h3>
+        <small>Matching candidates</small>
+      </div>
+    </div>
+
+    <div class="stat-card clickable" (click)="openstrongMatchModel()">
+      <div class="stat-icon orange">
+        <i class="bi bi-star"></i>
+      </div>
+      <div>
+        <span class="stat-label">Strong Match Candidates</span>
+        <h3>{{ loading ? '...' : states.strongMatchCandidates }}</h3>
+        <small>High suitability candidates</small>
+      </div>
+    </div>
+
+    <div class="stat-card clickable" (click)="openUpskillingModel()">
+      <div class="stat-icon red">
+        <i class="bi bi-lightbulb"></i>
+      </div>
+      <div>
+        <span class="stat-label">Candidates Requiring Upskilling</span>
+        <h3>{{ loading ? '...' : states.upskillingRequired }}</h3>
+        <small>Skill development opportunities</small>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon teal">
+        <i class="bi bi-bar-chart"></i>
+      </div>
+      <div>
+        <span class="stat-label">Frequently Requested Skills</span>
+        <h3>{{ loading ? '...' : states.frequentSkillsCount }}</h3>
+        <small>Skills across active projects</small>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Active Projects -->
+  <div class="modal-overlay" *ngIf="showActiveProjectModal">
+    <div class="modal-container modal-large">
+
+      <div class="modal-header">
+        <div>
+          <h3>Active Projects</h3>
+          <p>Review project requirements and resource recommendations.</p>
+        </div>
+
+        <button class="close-btn" (click)="closeActiveProjectModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="loading-state" *ngIf="loadingActiveProjects">
+          <div class="spinner"></div>
+          <p>Loading active projects...</p>
+        </div>
+
+        <div class="empty-state"
+             *ngIf="!loadingActiveProjects && activeProjectsList.length === 0">
+          <i class="bi bi-folder-x"></i>
+          <p>No active projects found.</p>
+        </div>
+
+        <div class="table-responsive"
+             *ngIf="!loadingActiveProjects && activeProjectsList.length > 0">
+
+          <table class="dashboard-table">
+            <thead>
+              <tr>
+                <th>Project Code</th>
+                <th>Project Name</th>
+                <th>Domain</th>
+                <th>Location</th>
+                <th>Mandatory Skills</th>
+                <th>Start Date</th>
+                <th>Duration</th>
+                <th>Resources</th>
+                <th>Eligible</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let project of activeProjectsList">
+                <td>{{ project.projectCode }}</td>
+                <td>{{ project.projectName }}</td>
+                <td>{{ project.businessDomain || '-' }}</td>
+                <td>{{ project.location || '-' }}</td>
+                <td class="skill-cell">
+                  {{ project.mandatorySkills || project.requiredTechnology || '-' }}
+                </td>
+                <td>{{ project.startfrom | date:'dd-MM-yyyy' }}</td>
+                <td>{{ project.projectDuration || '-' }}</td>
+                <td>{{ project.numberOfResources || 0 }}</td>
+
+                <td>
+                  <span *ngIf="projectMatchLoading[project.id]">
+                    <span class="mini-spinner"></span>
+                  </span>
+                  <strong *ngIf="!projectMatchLoading[project.id]">
+                    {{ projectEligibleCounts[project.id] ?? 0 }}
+                  </strong>
+                </td>
+
+                <td>
+                  <span class="status-badge status-active">Active</span>
+                </td>
+
+                <td>
+                  <button class="btn-recommend" (click)="openRecommendations(project)">
+                    <i class="bi bi-stars"></i>
+                    Recommendations
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeActiveProjectModal()">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- bench resources -->
+  <div class="modal-overlay" *ngIf="showBenchResourceModal">
+    <div class="modal-container modal-large">
+
+      <div class="modal-header">
+        <div>
+          <h3>Bench Resources</h3>
+          <p>Employees currently available on the bench.</p>
+        </div>
+
+        <button class="close-btn" (click)="closeBenchResourceModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <div class="loading-state" *ngIf="loadingBenchResources">
+          <div class="spinner"></div>
+          <p>Loading bench resources...</p>
+        </div>
+
+        <div class="empty-state"
+             *ngIf="!loadingBenchResources && benchResourceslist.length === 0">
+          <i class="bi bi-people"></i>
+          <p>No bench resources found.</p>
+        </div>
+
+        <div class="table-responsive"
+             *ngIf="!loadingBenchResources && benchResourceslist.length > 0">
+
+          <table class="dashboard-table">
+            <thead>
+              <tr>
+                <th>Employee Code</th>
+                <th>Employee Name</th>
+                <th>Designation</th>
+                <th>Department</th>
+                <th>Primary Skills</th>
+                <th>Experience</th>
+                <th>Assessment Score</th>
+                <th>Available From</th>
+                <th>Project Experience</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr *ngFor="let employee of benchResourceslist">
+                <td>{{ employee.employeeCode }}</td>
+                <td>{{ employee.employeeName }}</td>
+                <td>{{ employee.designation || '-' }}</td>
+                <td>{{ employee.department || '-' }}</td>
+                <td class="skill-cell">
+                  {{ employee.primaryskill || employee.primarySkills || '-' }}
+                </td>
+                <td>{{ employee.experience || 0 }} years</td>
+                <td>{{ employee.assessmentScore ?? '-' }}</td>
+                <td>{{ employee.availableFrom | date:'dd-MM-yyyy' }}</td>
+                <td>{{ employee.projectExperience || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeBenchResourceModal()">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- resource recommendation -->
+  <div class="modal-overlay recommendation-overlay" *ngIf="showRecommendationModal">
+
+    <div class="modal-container recommendation-container">
+
+      <div class="modal-header">
+        <div>
+          <h3>
+            <i class="bi bi-stars"></i>
+            Resource Recommendations
+          </h3>
+          <p *ngIf="selectedProject">
+            {{ selectedProject.projectCode }} -
+            {{ selectedProject.projectName }}
+          </p>
+        </div>
+
+        <button class="close-btn" (click)="closeRecommendationModal()">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <div class="modal-body recommendation-body">
+
+        <!-- LOADING -->
+        <div class="loading-state" *ngIf="loadingRecommendations">
+          <div class="spinner"></div>
+          <p>Analyzing employee skills and availability...</p>
+        </div>
+
+        <ng-container *ngIf="!loadingRecommendations">
+
+          <!-- MATCHING SUMMARY -->
+          <section class="matching-summary"
+                   *ngIf="recommendationResult">
+
+            <div class="summary-item">
+              <span>Total Candidates</span>
+              <strong>{{ candidates.length }}</strong>
+            </div>
+
+            <div class="summary-item">
+              <span>Eligible</span>
+              <strong class="text-success">
+                {{ recommendationResult.eligibleMatches ?? 0 }}
+              </strong>
+            </div>
+
+            <div class="summary-item">
+              <span>Partial</span>
+              <strong class="text-warning">
+                {{ recommendationResult.partialMatches ?? 0 }}
+              </strong>
+            </div>
+
+            <div class="summary-item">
+              <span>Future Available</span>
+              <strong>
+                {{ recommendationResult.futureMatches ?? 0 }}
+              </strong>
+            </div>
+
+            <div class="summary-item">
+              <span>Conflicts</span>
+              <strong class="text-danger">
+                {{ recommendationResult.conflictMatches ?? 0 }}
+              </strong>
+            </div>
+
+            <div class="summary-item">
+              <span>Last Matching Run</span>
+              <strong class="last-run">{{ getLastMatchingRun() }}</strong>
+            </div>
+
+          </section>
+
+          <!-- FILTERS -->
+          <section class="filter-panel">
+
+            <div class="filter-heading">
+              <h4>Filter Candidates</h4>
+              <button class="btn-link" (click)="resetFilters()">
+                Reset Filters
+              </button>
+            </div>
+
+            <div class="filter-grid">
+
+              <div class="filter-field">
+                <label>Search Employee</label>
+                <input type="text" [(ngModel)]="searchText" (ngModelChange)="applyFilters()"
+                       placeholder="Name, employee code..." />
+              </div>
+
+              <div class="filter-field">
+                <label>Skill</label>
+                <input type="text" [(ngModel)]="skillFilter" (ngModelChange)="applyFilters()" placeholder="e.g. Angular, PHP..." />
+              </div>
+
+              <div class="filter-field">
+                <label>Location</label>
+                <input type="text" [(ngModel)]="locationFilter" (ngModelChange)="applyFilters()" placeholder="e.g. Patna..." />
+              </div>
+
+              <div class="filter-field">
+                <label>Match Category</label>
+                <select [(ngModel)]="categoryFilter" (ngModelChange)="applyFilters()">
+                  <option value="All">All Categories</option>
+                  <option value="eligible">Eligible</option>
+                  <option value="Partial Skill Match">Partial Skill Match</option>
+                  <option value="Future Availability">Future Availability</option>
+                  <option value="Allocation Conflict">Allocation Conflict</option>
+                  <option value="excluded">Excluded</option>
+                </select>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- ACTIONS -->
+          <div class="recommendation-actions">
+            <div>
+              <strong>{{ filteredCandidates.length }}</strong>
+              candidates displayed
+              <span class="comparison-count">
+                | {{ comparisonCandidates.length }}/3 selected for comparison
+              </span>
+            </div>
+         
+            <div class="action-buttons">
+            <!--
+              <button class="btn-export" (click)="exportCandidates()">
+                <i class="bi bi-file-earmark-excel"></i>Export CSV
+              </button>
+            -->
+               <button type="button" class="btn btn-success" (click)="exportCandidatesExcel()">
+                <i class="bi bi-file-earmark-excel"></i>
+                Export Excel
+              </button>
+
+            <button type="button" class="btn btn-danger" (click)="exportCandidatesPDF()">
+              <i class="bi bi-file-earmark-pdf"></i>
+              Export PDF
+            </button>
+
+              <button class="btn-secondary" *ngIf="comparisonCandidates.length"
+                      (click)="clearComparison()">
+                Clear Comparison
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive candidate-table-wrapper"
+               *ngIf="filteredCandidates.length > 0">
+
+            <table class="dashboard-table candidate-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Employee</th>
+                  <th>Designation</th>
+                  <th>Location</th>
+                  <th>Experience</th>
+                  <th>Match Score</th>
+                  <th>Category</th>
+                  <th>Availability</th>
+                  <th>Matched Skills</th>
+                  <th>Missing Skills</th>
+                  <th>Compare</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr *ngFor="let candidate of filteredCandidates">
+                  <td>
+                    <span class="rank-badge">#{{ candidate.rank }}</span>
+                  </td>
+
+                  <td>
+                    <strong>{{ candidate.employeeName }}</strong>
+                    <small class="sub-text">{{ candidate.employeeCode }}</small>
+                  </td>
+
+                  <td>{{ candidate.assignedRole ?? candidate.employeeDesignation }}</td>
+                  <td>{{ candidate.location }}</td>
+                  <td>{{ candidate.experience }} years</td>
+
+                  <td>
+                    <span class="match-score"
+                          [ngClass]="getMatchClass(candidate.suitabilityScore)">
+                      {{ candidate.suitabilityScore | number:'1.1-2' }}%
+                    </span>
+                  </td>
+
+                  <td>
+                    <span class="status-badge"
+                          [ngClass]="getCategoryClass(candidate.category)">
+                      {{ candidate.category }}
+                    </span>
+                  </td>
+
+                  <td>{{ candidate.availabilityStatus }}</td>
+
+                  <td class="skill-cell">
+                    {{ displaySkills(candidate.matchedMandatorySkills) }}
+                  </td>
+
+                  <td class="skill-cell missing-skills">
+                    {{ displaySkills(candidate.missingMandatorySkills) }}
+                  </td>
+
+                  <td>
+                    <input type="checkbox" [checked]="isSelectedForComparison(candidate)"
+                      (change)="Comparison(candidate)" aria-label="Select candidate for comparison" />
+                  </td>
+
+                  <td>
+                    <button class="btn-view" (click)="viewEmployeeDetails(candidate)">
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+          </div>
+
+          <div class="empty-state"
+               *ngIf="filteredCandidates.length === 0">
+            <i class="bi bi-search"></i>
+            <p>No candidates found for the selected filters.</p>
+          </div>
+
+          <!-- comparison -->
+          <section class="comparison-panel" *ngIf="comparisonCandidates.length > 0">
+
+            <div class="comparison-heading">
+              <h4>Candidate Comparison</h4>
+              <span>{{ comparisonCandidates.length }} of 3 candidates</span>
+            </div>
+
+            <div class="comparison-grid">
+              <div class="comparison-card" *ngFor="let candidate of comparisonCandidates">
+                <div class="comparison-card-header">
+                  <strong>{{ candidate.employeeName }}</strong>
+                  <button class="remove-compare" (click)="Comparison(candidate)">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                </div>
+
+                <p>{{ candidate.employeeCode }}</p>
+                <div class="comparison-score">
+                  {{ candidate.suitabilityScore | number:'1.1-2' }}%
+                </div>
+
+                <div class="comparison-row">
+                  <span>Category</span>
+                  <strong>{{ candidate.category }}</strong>
+                </div>
+
+                <div class="comparison-row">
+                  <span>Location</span>
+                  <strong>{{ candidate.location }}</strong>
+                </div>
+
+                <div class="comparison-row">
+                  <span>Experience</span>
+                  <strong>{{ candidate.experience }} years</strong>
+                </div>
+
+                <div class="comparison-row">
+                  <span>Matched Skills</span>
+                  <strong>{{ displaySkills(candidate.matchedMandatorySkills) }}</strong>
+                </div>
+
+                <div class="comparison-row">
+                  <span>Missing Skills</span>
+                  <strong>{{ displaySkills(candidate.missingMandatorySkills) }}</strong>
+                </div>
+
+              </div>
+            </div>
+          </section>
+
+          <!-- CANDIDATE DETAIL -->
+          <section class="candidate-detail-panel" *ngIf="selectedCandidate">
+
+            <div class="detail-heading">
+              <div>
+                <h4>Candidate Deployment Profile</h4>
+                <p>
+                  {{ selectedCandidate.employeeName }}
+                  ({{ selectedCandidate.employeeCode }})
+                </p>
+              </div>
+
+              <button class="btn-secondary" (click)="closeCandidateDetails()">
+                Close Details
+              </button>
+            </div>
+
+            <div class="detail-score">
+              <span>Overall Suitability</span>
+              <strong>
+                {{ selectedCandidate.suitabilityScore | number:'1.1-2' }}%
+              </strong>
+            </div>
+
+            <div class="detail-grid">
+
+              <div class="detail-item">
+                <label>Designation</label>
+                <strong>{{ selectedCandidate.designation }}</strong>
+              </div>
+
+              <div class="detail-item">
+                <label>Location</label>
+                <strong>{{ selectedCandidate.location }}</strong>
+              </div>
+
+              <div class="detail-item">
+                <label>Experience</label>
+                <strong>{{ selectedCandidate.experience }} years</strong>
+              </div>
+
+              <div class="detail-item">
+                <label>Availability</label>
+                <strong>{{ selectedCandidate.availabilityStatus }}</strong>
+              </div>
+
+              <div class="detail-item">
+                <label>Proficiency Score</label>
+                <strong>{{ selectedCandidate.proficiencyScore }}</strong>
+              </div>
+
+              <div class="detail-item">
+                <label>Category</label>
+                <strong>{{ selectedCandidate.category }}</strong>
+              </div>
+
+            </div>
+
+            <div class="skill-analysis">
+              <div>
+                <h5>Matched Mandatory Skills</h5>
+                <p class="skill-success">
+                  {{ displaySkills(selectedCandidate.matchedMandatorySkills) }}
+                </p>
+              </div>
+
+              <div>
+                <h5>Missing Mandatory Skills</h5>
+                <p class="skill-danger">
+                  {{ displaySkills(selectedCandidate.missingMandatorySkills) }}
+                </p>
+              </div>
+
+              <div>
+                <h5>Transferable Skills</h5>
+                <p>
+                  {{ displaySkills(selectedCandidate.transferableSkills) }}
+                </p>
+              </div>
+
+              <div>
+                <h5>Recommendation Explanation</h5>
+                <p>
+                  {{ selectedCandidate.explanation || 'No explanation provided by the matching API.' }}
+                </p>
+              </div>
+
+              <div *ngIf="selectedCandidate.reasons?.length">
+                <h5>Matching Reasons</h5>
+                <ul>
+                  <li *ngFor="let reason of selectedCandidate.reasons">
+                    {{ reason }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+          </section>
+
+        </ng-container>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary"
+                (click)="closeRecommendationModal()">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Employee Detail Modal -->
+<div class="employee-detail-overlay"
+     *ngIf="showEmployeeDetailModal">
+
+  <div class="employee-detail-container">
+
+    <!-- Header -->
+    <div class="employee-detail-header">
+      <h5>
+        <i class="bi bi-person-vcard"></i>
+        Employee Details
+      </h5>
+
+      <button type="button"
+              class="employee-detail-close"
+              (click)="closeEmployeeDetailModal()">
+        &times;
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="employee-detail-body">
+
+      <!-- Loading -->
+      <div *ngIf="loadingEmployeeDetails"
+           class="text-center p-4">
+        <div class="spinner-border text-primary"></div>
+        <p class="mt-2">Loading employee details...</p>
+      </div>
+
+      <!-- Employee Information -->
+      <div *ngIf="!loadingEmployeeDetails && employeeDetails">
+
+        <div class="employee-profile-heading">
+          <h5>
+            {{ employeeDetails.employeeName || employeeDetails.name || 'Employee' }}
+          </h5>
+
+          <span>
+            {{ employeeDetails.employeeCode || employeeDetails.employee_code || 'N/A' }}
+          </span>
+        </div>
+
+        <div class="employee-detail-grid">
+
+          <!--
+          <div class="employee-detail-item">
+            <label>Email</label>
+            <p>{{ employeeDetails.email || 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item">
+            <label>Phone</label>
+            <p>{{ employeeDetails.phone || employeeDetails.mobile || 'N/A' }}</p>
+          </div>
+        -->
+          <div class="employee-detail-item">
+            <label>Designation</label>
+            <p>{{ employeeDetails.designation || 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item">
+            <label>Department</label>
+            <p>{{ employeeDetails.department || 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item">
+            <label>Location</label>
+            <p>{{ employeeDetails.location || 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item">
+            <label>Resource Status</label>
+            <p>{{ employeeDetails.resourceStatus || employeeDetails.resource_status || 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item">
+            <label>Experience</label>
+            <p>{{ employeeDetails.experience ?? 'N/A' }}&nbsp;Years</p>
+          </div>
+
+          <div class="employee-detail-item">
+            <label>Assessment Score</label>
+            <p>{{ employeeDetails.assessmentScore ?? 'N/A' }}%</p>
+          </div>
+
+          <div class="employee-detail-item">
+            <label>Certifications</label>
+            <p>{{ employeeDetails.certifications ?? 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item">
+            <label>Project Experience</label>
+            <p>{{ employeeDetails.projectExperience ?? 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item full-width">
+            <label>Primary Skills</label>
+            <p>{{ employeeDetails.primaryskill ?? 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item full-width">
+            <label>Secondary Skills</label>
+            <p>{{ employeeDetails.secondarySkills ?? 'N/A' }}</p>
+          </div>
+
+          <div class="employee-detail-item full-width">
+            <label>Tertiary Skills</label>
+            <p>{{ employeeDetails.tertiarySkills ?? 'N/A' }}</p>
+          </div>
+
+        </div>
+      </div>
+
+      <div *ngIf="!loadingEmployeeDetails && !employeeDetails"
+           class="text-center p-4">
+        Employee details not found.
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="employee-detail-footer">
+      <button type="button"
+              class="btn btn-secondary"
+              (click)="closeEmployeeDetailModal()">
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- resource matching requirement model -->
+<div class="matching-modal-backdrop" *ngIf="showMatchingResourcesModal">
+
+  <div class="matching-modal">
+    <!-- Modal Header -->
+    <div class="matching-modal-header">
+      <div>
+        <h4>Resources Matching Current Requirements</h4>
+        <p>
+          Total Matching Employees:
+          <strong>{{ matchingResources.length }}</strong>
+        </p>
+      </div>
+
+      <button type="button" class="matching-close-btn" (click)="closeMatchingResourcesModal()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="matching-modal-body">
+    <div class="matching-loading" *ngIf="matchingResourcesLoading">
+     <div class="spinner-border text-primary"></div>
+      <p>Loading matching resources...</p>
+     </div>
+  
+      <div class="matching-empty" *ngIf="!matchingResourcesLoading &&
+            matchingResources.length === 0">
+
+        <i class="bi bi-people"></i>
+        <p>No matching resources found.</p>
+
+      </div>
+   
+      <div class="table-responsive" *ngIf="!matchingResourcesLoading && matchingResources.length > 0">
+      <table class="table matching-resource-table">
+
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Employee Code</th>
+              <th>Employee Name</th>
+              <th>Designation</th>
+              <th>Location</th>
+              <th>Experience</th>
+              <th>Matched Projects</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            <tr *ngFor="let employee of matchingResources; let i = index">
+
+              <td>{{ i + 1 }}</td>
+
+              <td>
+                <strong>{{ employee.employeeCode }}</strong>
+              </td>
+
+              <td>{{ employee.employeeName }}</td>
+
+              <td>{{ employee.designation }}</td>
+
+              <td>{{ employee.location }}</td>
+
+              <td>
+                {{ employee.employeeExperience }} years
+              </td>
+
+              <td>
+
+                <div class="matched-project-list"  *ngFor="let project of employee.matchedProjects">
+
+                  <div class="matched-project-item">
+
+                    <strong>{{ project.projectCode }}</strong>
+
+                    <span>{{ project.projectName }}</span>
+
+                    <span class="project-match-score">
+                      {{ project.suitabilityScore | number:'1.1-2' }}%
+                    </span>
+
+                  </div>
+
+                </div>
+
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="matching-modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeMatchingResourcesModal()">
+        Close
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Strong Skill Match model -->
+
+<div class="matching-modal-backdrop" *ngIf="showStrongMatchModel">
+  <div class="matching-modal">
+    <!-- Modal Header -->
+    <div class="matching-modal-header">
+      <div>
+        <h4>Strong Match Candidates</h4>
+        <p>
+          Total Strong Match Candidates:
+          <strong>{{ strongMatchCandidates.length }}</strong>
+        </p>
+      </div>
+
+      <button type="button" class="matching-close-btn" (click)="closeStrongskillModel()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="matching-modal-body">
+    <div class="matching-loading" *ngIf="matchingResourcesLoading">
+        <div class="spinner-border text-primary"></div>
+        <p>Loading strong match candidates...</p>
+      </div>
+
+      <div class="matching-empty" *ngIf="!matchingResourcesLoading && strongMatchCandidates.length === 0">
+        <i class="bi bi-people"></i>
+        <p>No strong match candidates found.</p>
+      </div>
+
+      <div class="table-responsive" *ngIf="!matchingResourcesLoading && strongMatchCandidates.length > 0">
+      <table class="table matching-resource-table">
+         <thead>
+            <tr>
+              <th>#</th>
+              <th>Employee Code</th>
+              <th>Employee Name</th>
+              <th>Designation</th>
+              <th>Location</th>
+              <th>Experience</th>
+              <th>Matched Projects & Criteria</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let employee of strongMatchCandidates; let i = index">
+            <td>{{ i + 1 }}</td>
+            <td><strong>{{ employee.employeeCode }}</strong></td>
+            <td>{{ employee.employeeName }}</td>
+            <td>{{ employee.designation }}</td>
+            <td>{{ employee.location }}</td>
+            <td>{{ employee.employeeExperience }} years</td>
+            <td>
+            <div class="matched-project-list" *ngFor="let project of employee.matchedProjects">
+             <div class="matched-project-item">
+             <div class="matched-project-heading">
+             <div>
+               <strong>{{ project.projectCode }}</strong>
+               <span>{{ project.projectName }}</span>
+              </div>
+
+              <span class="project-match-score">
+               {{ project.suitabilityScore | number:'1.1-2' }}%
+              </span>
+              </div>
+
+              <div class="strong-match-label">
+              <i class="bi bi-patch-check-fill"></i>
+               {{ project.matchCategory || 'Strong Match' }}
+              </div>
+
+              <div class="strong-match-criteria">
+
+                      <div>
+                        <span>Mandatory Skills</span>
+                        <strong>
+                          {{ project.mandatoryMatchPercentage }}%
+                          <i class="bi bi-check-circle-fill text-success"
+                            *ngIf="project.strongMatchCriteria?.mandatorySkillsMatched">
+                          </i>
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Availability</span>
+                        <strong>
+                          {{ project.availabilityPercentage }}%
+                          <i class="bi bi-check-circle-fill text-success"
+                            *ngIf="project.strongMatchCriteria?.availabilityMatched">
+                          </i>
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Experience</span>
+                        <strong>
+                          {{ project.experienceEligible ? 'Met' : 'Not Met' }}
+                          <i class="bi bi-check-circle-fill text-success"
+                            *ngIf="project.strongMatchCriteria?.experienceMatched">
+                          </i>
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Proficiency</span>
+                        <strong>
+                          {{ project.proficiencyEligible ? 'Met' : 'Not Met' }}
+                          <i class="bi bi-check-circle-fill text-success"
+                            *ngIf="project.strongMatchCriteria?.proficiencyMatched">
+                          </i>
+                        </strong>
+                      </div>
+
+                      <div>
+                        <span>Assessment Score</span>
+                        <strong>
+                          {{ project.assessmentScore }}/100
+                          <i class="bi bi-check-circle-fill text-success"
+                            *ngIf="project.strongMatchCriteria?.assessmentPassed">
+                          </i>
+                        </strong>
+                      </div>
+
+                    </div>
+
+                    <div class="matched-skills">
+                      <strong>Matched Skills:</strong>
+                      <span class="skill-badge" *ngFor="let skill of project.matchedMandatorySkills">
+                        {{ skill }}
+                      </span>
+                    </div>
+
+                    <p class="recommendation-explanation" *ngIf="project.recommendationExplanation">
+                      {{ project.recommendationExplanation }}
+                    </p>
+
+                  </div>
+
+                </div>
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+      </div>
+
+    </div>
+
+    <div class="matching-modal-footer">
+      <button type="button" class="btn btn-secondary" (click)="closeStrongskillModel()">
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- candidate upskilling -->
+
+
+<div class="matching-modal-backdrop" *ngIf="showUpskillingModel">
+
+  <div class="matching-modal">
+
+    <!-- Modal Header -->
+    <div class="matching-modal-header">
+      <div>
+        <h4>Candidates Requiring Upskilling</h4>
+        <p>
+          Total Upskilling Candidates:
+          <strong>{{ upskillingCandidates.length }}</strong>
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="matching-close-btn"
+        (click)="closeUpskillingModel()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="matching-modal-body">
+
+      <!-- Loading -->
+      <div class="matching-loading" *ngIf="loading">
+        <div class="spinner-border text-primary"></div>
+        <p>Loading upskilling candidates...</p>
+      </div>
+
+      <!-- Empty -->
+      <div
+        class="matching-empty"
+        *ngIf="!loading && upskillingCandidates.length === 0">
+
+        <i class="bi bi-mortarboard"></i>
+        <p>No candidates requiring upskilling found.</p>
+      </div>
+
+      <!-- Candidate Table -->
+      <div
+        class="table-responsive"
+        *ngIf="!loading && upskillingCandidates.length > 0">
+
+        <table class="table matching-resource-table">
+
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Employee Code</th>
+              <th>Employee Name</th>
+              <th>Designation</th>
+              <th>Location</th>
+              <th>Experience</th>
+              <th>Upskilling Details</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            <tr *ngFor="let employee of upskillingCandidates; let i = index">
+
+              <td>{{ i + 1 }}</td>
+
+              <td>
+                <strong>{{ employee.employeeCode }}</strong>
+              </td>
+
+              <td>{{ employee.employeeName }}</td>
+
+              <td>{{ employee.designation }}</td>
+
+              <td>{{ employee.location }}</td>
+
+              <td>{{ employee.employeeExperience }} years</td>
+
+              <td>
+
+                <div
+                  class="matched-project-list"
+                  *ngFor="let project of employee.matchedProjects">
+
+                  <div class="matched-project-item">
+
+                    <!-- Project Information -->
+                    <div class="matched-project-heading">
+
+                      <div>
+                        <strong>{{ project.projectCode }}</strong>
+                        <span>{{ project.projectName }}</span>
+                      </div>
+
+                      <span class="upskilling-label">
+                        <i class="bi bi-mortarboard-fill"></i>
+                        Training Required
+                      </span>
+
+                    </div>
+
+                    <!-- Mandatory Skill Match -->
+                    <div class="upskilling-match">
+                      <span>Mandatory Skills Match</span>
+
+                      <strong>
+                        {{ project.mandatoryMatchPercentage | number:'1.1-2' }}%
+                      </strong>
+                    </div>
+
+                    <!-- Matched Skills -->
+                    <div
+                      class="matched-skills"
+                      *ngIf="project.matchedMandatorySkills?.length">
+
+                      <strong>Matched Skills:</strong>
+
+                      <span
+                        class="skill-badge"
+                        *ngFor="let skill of project.matchedMandatorySkills">
+                        {{ skill }}
+                      </span>
+
+                    </div>
+
+                    <!-- Missing Skills -->
+                    <div
+                      class="missing-skills"
+                      *ngIf="project.missingMandatorySkills?.length">
+
+                      <strong>
+                        <i class="bi bi-exclamation-circle-fill"></i>
+                        Skills Required for Training:
+                      </strong>
+
+                      <span
+                        class="missing-skill-badge"
+                        *ngFor="let skill of project.missingMandatorySkills">
+                        {{ skill }}
+                      </span>
+
+                    </div>
+
+                    <!-- Recommendation Explanation -->
+                    <p
+                      class="recommendation-explanation"
+                      *ngIf="project.recommendationExplanation">
+
+                      {{ project.recommendationExplanation }}
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </td>
+
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="matching-modal-footer">
+
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="closeUpskillingModel()">
+        Close
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+
